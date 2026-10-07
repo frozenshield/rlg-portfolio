@@ -14,6 +14,10 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   
   // Interactive Demo Toggle: 'admin' | 'storefront'
   const activeDemoMode = ref('admin')
+
+  // Screen Resolution / Device Frame Mode: 'desktop' | 'tablet' | 'mobile'
+  const activeDevice = ref('desktop')
+  const deviceZoom = ref(100)
   
   // Presentation Deck state
   const currentSlideIndex = ref(0)
@@ -25,6 +29,9 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   // AI status & connection state
   const aiStatus = ref('Online')
   const isAiStreaming = ref(false)
+
+  // Currency switcher state for demo views
+  const currency = ref('PHP') // 'PHP' | 'USD'
 
   // Actions
   function openWorkspace(projectId = 'rlg-online-shop', initialTab = 'overview') {
@@ -46,6 +53,14 @@ export const usePortfolioStore = defineStore('portfolio', () => {
 
   function setDemoMode(mode) {
     activeDemoMode.value = mode
+  }
+
+  function setDevice(device) {
+    activeDevice.value = device
+  }
+
+  function toggleCurrency() {
+    currency.value = currency.value === 'PHP' ? 'USD' : 'PHP'
   }
 
   function nextSlide(totalSlides = 8) {
@@ -77,19 +92,23 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     activeProjectId,
     activeWorkspaceTab,
     activeDemoMode,
+    activeDevice,
+    deviceZoom,
     currentSlideIndex,
     isTalkTracksOpen,
     searchQuery,
     aiStatus,
     isAiStreaming,
+    currency,
     openWorkspace,
     closeWorkspace,
     setWorkspaceTab,
     setDemoMode,
+    setDevice,
+    toggleCurrency,
     nextSlide,
     prevSlide,
     goToSlide,
     toggleTalkTracks
   }
 })
-

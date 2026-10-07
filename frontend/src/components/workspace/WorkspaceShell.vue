@@ -5,6 +5,7 @@ import { rlgProjectData } from '../../data/projectsData'
 import WorkspaceSidebar from './WorkspaceSidebar.vue'
 import WorkspaceTopBar from './WorkspaceTopBar.vue'
 import SlideDeckViewer from './SlideDeckViewer.vue'
+import DeviceSimulatorFrame from './demos/DeviceSimulatorFrame.vue'
 import AdminPanelDemo from './demos/AdminPanelDemo.vue'
 import BuyerStorefrontDemo from './demos/BuyerStorefrontDemo.vue'
 import DeploymentView from './DeploymentView.vue'
@@ -25,7 +26,8 @@ import {
   BookOpen,
   FolderGit2,
   Scan,
-  Compass
+  Compass,
+  Monitor
 } from 'lucide-vue-next'
 
 const portfolioStore = usePortfolioStore()
@@ -194,30 +196,31 @@ const metricCards = [
             </button>
           </div>
 
-          <!-- Quick Launch Interactive Demos Banner -->
+          <!-- Quick Launch Interactive Demos Banner with Desktop vs Mobile Phone triggers -->
           <div class="p-6 rounded-2xl bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 border border-indigo-500/30 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="space-y-1">
               <span class="text-xs font-mono uppercase tracking-widest text-indigo-400 font-semibold">Hands-On Evaluation</span>
-              <h3 class="text-lg font-bold text-white">Experience Live Interactive Demos</h3>
+              <h3 class="text-lg font-bold text-white">Experience Live Demos with Device Resolution Switcher</h3>
               <p class="text-xs text-slate-300">
-                Test the Admin Intake Engine (with simulated Gemini Vision OCR) or the Buyer Storefront (with Pinia Cart & AI Chat).
+                Inspect actual views from the <code class="text-indigo-400">rlgshop</code> repository in Desktop (1440px), Tablet (1024px), or realistic Smartphone Frame (390px).
               </p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
               <button
-                @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDemoMode('admin')"
-                class="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center gap-2 shadow-md transition-all"
+                @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDemoMode('admin'); portfolioStore.setDevice('desktop')"
+                class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all"
               >
-                <LayoutDashboard class="w-4 h-4" />
-                <span>Admin Panel Demo</span>
+                <Monitor class="w-3.5 h-3.5" />
+                <span>Admin (Desktop)</span>
               </button>
+
               <button
-                @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDemoMode('storefront')"
-                class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-2 shadow-md transition-all"
+                @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDemoMode('storefront'); portfolioStore.setDevice('mobile')"
+                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all"
               >
-                <Store class="w-4 h-4" />
-                <span>Buyer Storefront Demo</span>
+                <Smartphone class="w-3.5 h-3.5 text-amber-300" />
+                <span>Storefront (Mobile Phone)</span>
               </button>
             </div>
           </div>
@@ -229,50 +232,15 @@ const metricCards = [
           <SlideDeckViewer />
         </div>
 
-        <!-- ================= INTERACTIVE DEMOS TAB ================= -->
+        <!-- ================= INTERACTIVE DEMOS TAB (WITH DEVICE RESOLUTION SIMULATOR) ================= -->
         <div v-else-if="portfolioStore.activeWorkspaceTab === 'demos'" class="space-y-6">
-          <!-- Segment Toggle: [ Admin Panel ] | [ Buyer Storefront ] -->
-          <div class="flex items-center justify-between pb-4 border-b border-indigo-500/20">
-            <div>
-              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Interactive Live Demos</h2>
-              <p class="text-xs text-slate-400 mt-0.5">Toggle between backoffice inventory intake and consumer storefront</p>
-            </div>
-
-            <!-- Segment Switcher -->
-            <div class="p-1 rounded-xl bg-[#131b2e] border border-indigo-500/30 flex items-center gap-1 text-xs font-semibold">
-              <button
-                @click="portfolioStore.setDemoMode('admin')"
-                :class="[
-                  'px-3.5 py-2 rounded-lg flex items-center gap-2 transition-all',
-                  portfolioStore.activeDemoMode === 'admin'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                ]"
-              >
-                <LayoutDashboard class="w-4 h-4" />
-                <span>Admin Panel Demo</span>
-              </button>
-              <button
-                @click="portfolioStore.setDemoMode('storefront')"
-                :class="[
-                  'px-3.5 py-2 rounded-lg flex items-center gap-2 transition-all',
-                  portfolioStore.activeDemoMode === 'storefront'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                ]"
-              >
-                <Store class="w-4 h-4" />
-                <span>Buyer Storefront Demo</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Active Demo Component -->
-          <Transition mode="out-in" name="fade">
-            <component 
-              :is="portfolioStore.activeDemoMode === 'admin' ? AdminPanelDemo : BuyerStorefrontDemo" 
-            />
-          </Transition>
+          <DeviceSimulatorFrame>
+            <Transition mode="out-in" name="fade">
+              <component 
+                :is="portfolioStore.activeDemoMode === 'admin' ? AdminPanelDemo : BuyerStorefrontDemo" 
+              />
+            </Transition>
+          </DeviceSimulatorFrame>
         </div>
 
         <!-- ================= INFRASTRUCTURE TAB ================= -->
@@ -311,4 +279,3 @@ const metricCards = [
   transform: translateY(6px);
 }
 </style>
-
