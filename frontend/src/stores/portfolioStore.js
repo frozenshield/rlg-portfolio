@@ -33,21 +33,35 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   // Currency switcher state for demo views
   const currency = ref('PHP') // 'PHP' | 'USD'
 
+  // Workspace mobile sidebar drawer state
+  const isWorkspaceSidebarOpen = ref(false)
+
   // Actions
   function openWorkspace(projectId = 'rlg-online-shop', initialTab = 'overview') {
     activeProjectId.value = projectId
     activeWorkspaceTab.value = initialTab
     currentMode.value = 'workspace'
+    isWorkspaceSidebarOpen.value = false
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function closeWorkspace() {
     currentMode.value = 'outer'
+    isWorkspaceSidebarOpen.value = false
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function toggleWorkspaceSidebar() {
+    isWorkspaceSidebarOpen.value = !isWorkspaceSidebarOpen.value
+  }
+
+  function closeWorkspaceSidebar() {
+    isWorkspaceSidebarOpen.value = false
   }
 
   function setWorkspaceTab(tab) {
     activeWorkspaceTab.value = tab
+    isWorkspaceSidebarOpen.value = false
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -100,8 +114,11 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     aiStatus,
     isAiStreaming,
     currency,
+    isWorkspaceSidebarOpen,
     openWorkspace,
     closeWorkspace,
+    toggleWorkspaceSidebar,
+    closeWorkspaceSidebar,
     setWorkspaceTab,
     setDemoMode,
     setDevice,

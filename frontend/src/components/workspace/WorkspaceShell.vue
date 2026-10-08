@@ -65,17 +65,34 @@ const metricCards = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#090d16] text-slate-100 flex flex-col md:flex-row antialiased selection:bg-indigo-500 selection:text-white">
+  <div class="h-screen w-full bg-[#090d16] text-slate-100 flex flex-col md:flex-row overflow-hidden antialiased selection:bg-indigo-500 selection:text-white relative">
+    
+    <!-- Mobile Backdrop for Workspace Sidebar -->
+    <Transition name="fade">
+      <div 
+        v-if="portfolioStore.isWorkspaceSidebarOpen"
+        @click="portfolioStore.closeWorkspaceSidebar"
+        class="fixed inset-0 bg-black/75 z-40 md:hidden backdrop-blur-xs transition-opacity"
+      />
+    </Transition>
+
     <!-- Left Navigation Sidebar -->
-    <WorkspaceSidebar />
+    <WorkspaceSidebar 
+      :class="[
+        'transition-transform duration-200 ease-in-out md:translate-x-0',
+        portfolioStore.isWorkspaceSidebarOpen 
+          ? 'fixed inset-y-0 left-0 z-50 flex shadow-2xl' 
+          : 'fixed inset-y-0 left-0 -translate-x-full z-50 md:static md:flex'
+      ]"
+    />
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col min-w-0 bg-[#090d16]">
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#090d16]">
       <!-- Top Navigation & Status Bar -->
-      <WorkspaceTopBar />
+      <WorkspaceTopBar class="shrink-0" />
 
       <!-- Scrollable View Body -->
-      <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-8">
+      <main class="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto overflow-x-hidden max-w-full w-full mx-auto space-y-6 min-w-0">
         
         <!-- ================= OVERVIEW & METRICS VIEW ================= -->
         <div v-if="portfolioStore.activeWorkspaceTab === 'overview'" class="space-y-8 text-left">

@@ -220,7 +220,7 @@ const resolutionLabel = computed(() => {
         v-else 
         :class="[
           'w-full bg-[#0f172a] rounded-2xl border border-indigo-500/30 shadow-2xl overflow-hidden flex flex-col transition-all',
-          portfolioStore.activeDevice === 'tablet' ? 'max-w-3xl' : 'max-w-7xl'
+          portfolioStore.activeDevice === 'tablet' ? 'max-w-4xl' : 'w-full max-w-full'
         ]"
       >
         <!-- Browser Window Chrome Top Header -->
@@ -259,7 +259,7 @@ const resolutionLabel = computed(() => {
         </div>
 
         <!-- Browser Viewport Inner Content -->
-        <div class="p-4 sm:p-6 overflow-x-hidden">
+        <div class="p-3 sm:p-5 lg:p-6 overflow-x-hidden min-w-0 w-full">
           <slot />
         </div>
       </div>

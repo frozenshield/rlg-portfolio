@@ -11,7 +11,8 @@ import {
   Github, 
   ExternalLink, 
   ArrowLeft,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-vue-next'
 
 const portfolioStore = usePortfolioStore()
@@ -28,27 +29,38 @@ const navItems = [
 </script>
 
 <template>
-  <aside class="w-64 shrink-0 bg-[#090d16] border-r border-indigo-500/20 flex flex-col justify-between h-full min-h-screen text-slate-300">
+  <aside class="w-60 lg:w-64 shrink-0 bg-[#090d16] border-r border-indigo-500/20 flex flex-col justify-between h-full overflow-y-auto text-slate-300">
     <!-- Top Branding & Navigation -->
     <div class="p-4 space-y-6">
       
       <!-- Brand Logo Header matching reference screenshot -->
-      <div class="flex items-center gap-3 px-2 py-1">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 p-[1px] shadow-lg shadow-indigo-500/20">
-          <div class="w-full h-full bg-[#090d16] rounded-xl flex items-center justify-center">
-            <span class="font-extrabold text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-              R
+      <div class="flex items-center justify-between px-2 py-1">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 p-[1px] shadow-lg shadow-indigo-500/20">
+            <div class="w-full h-full bg-[#090d16] rounded-xl flex items-center justify-center">
+              <span class="font-extrabold text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                R
+              </span>
+            </div>
+          </div>
+          <div>
+            <h2 class="text-base font-extrabold text-white tracking-wider flex items-center gap-1.5 leading-none">
+              RLG SHOP
+            </h2>
+            <span class="text-[10px] uppercase font-mono tracking-widest text-slate-400 block mt-1">
+              PORTFOLIO
             </span>
           </div>
         </div>
-        <div>
-          <h2 class="text-base font-extrabold text-white tracking-wider flex items-center gap-1.5 leading-none">
-            RLG SHOP
-          </h2>
-          <span class="text-[10px] uppercase font-mono tracking-widest text-slate-400 block mt-1">
-            PORTFOLIO
-          </span>
-        </div>
+
+        <!-- Mobile Close Button -->
+        <button 
+          @click="portfolioStore.closeWorkspaceSidebar"
+          class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          title="Close Navigation"
+        >
+          <X class="w-4 h-4" />
+        </button>
       </div>
 
       <!-- Navigation links -->

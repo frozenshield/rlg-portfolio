@@ -41,7 +41,7 @@ const portfolioStore = usePortfolioStore()
       <div 
         v-else 
         key="workspace-mode"
-        class="min-h-screen bg-[#090d16] text-slate-100"
+        class="h-screen w-full overflow-hidden bg-[#090d16] text-slate-100"
       >
         <WorkspaceShell />
       </div>

@@ -7,7 +7,8 @@ import {
   ArrowLeft,
   ChevronRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Menu
 } from 'lucide-vue-next'
 
 const portfolioStore = usePortfolioStore()
@@ -24,9 +25,18 @@ const tabDisplayNames = {
 </script>
 
 <template>
-  <header class="h-16 px-4 sm:px-6 border-b border-indigo-500/20 bg-[#090d16]/90 backdrop-blur-md flex items-center justify-between gap-4 sticky top-0 z-30">
-    <!-- Left: Breadcrumb Navigation -->
-    <div class="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
+  <header class="h-16 px-3 sm:px-6 border-b border-indigo-500/20 bg-[#090d16]/90 backdrop-blur-md flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
+    <!-- Left: Breadcrumb Navigation + Mobile Sidebar Toggle -->
+    <div class="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-400">
+      <!-- Mobile sidebar toggle -->
+      <button 
+        @click="portfolioStore.toggleWorkspaceSidebar"
+        class="md:hidden p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        title="Toggle Workspace Menu"
+      >
+        <Menu class="w-4 h-4" />
+      </button>
+
       <button 
         @click="portfolioStore.closeWorkspace" 
         class="hover:text-indigo-400 transition-colors flex items-center gap-1 font-medium text-slate-300"

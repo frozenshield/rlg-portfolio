@@ -55,6 +55,7 @@ const portfolioStore = usePortfolioStore()
 
 // Device state & layout
 const isMobile = computed(() => portfolioStore.activeDevice === 'mobile')
+const isTablet = computed(() => portfolioStore.activeDevice === 'tablet')
 
 // Active section inside the Admin Panel
 // 'dashboard' | 'orders' | 'inventory' | 'products' | 'auctions' | 'customers' | 'marketing' | 'cms' | 'analytics' | 'settings'
@@ -603,23 +604,33 @@ function switchSection(sec) {
 </script>
 
 <template>
-  <div class="min-h-[750px] bg-[#f1f5f9] text-slate-800 rounded-xl overflow-hidden flex flex-col md:flex-row text-left font-sans shadow-inner relative">
+  <div 
+    :class="[
+      'min-h-[750px] bg-[#f1f5f9] text-slate-800 rounded-xl overflow-hidden text-left font-sans shadow-inner relative',
+      isMobile ? 'flex flex-col w-full' : 'flex flex-row w-full'
+    ]"
+  >
     
-    <!-- Mobile Backdrop Drawer -->
-    <div 
-      v-if="isSidebarOpen"
-      @click="isSidebarOpen = false"
-      class="fixed inset-0 bg-black/70 z-30 backdrop-blur-xs transition-opacity"
-    />
+    <!-- Mobile Backdrop Drawer (Only active on mobile when drawer is open) -->
+    <Transition name="fade">
+      <div 
+        v-if="isMobile && isSidebarOpen"
+        @click="isSidebarOpen = false"
+        class="absolute inset-0 bg-black/75 z-40 backdrop-blur-xs transition-opacity"
+      />
+    </Transition>
 
     <!-- ================= ACTUAL LEFT SIDEBAR (Dark navy #050811) ================= -->
-    <aside 
-      :class="[
-        'w-64 sm:w-72 bg-[#050811] text-slate-400 p-4 shrink-0 flex flex-col justify-between border-r border-slate-800/80 transition-all z-40',
-        'md:flex md:static md:translate-x-0',
-        isSidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0 shadow-2xl flex max-w-[85%]' : 'hidden -translate-x-full'
-      ]"
-    >
+    <Transition name="admin-drawer">
+      <aside 
+        v-if="!isMobile || isSidebarOpen"
+        :class="[
+          'bg-[#050811] text-slate-400 p-4 shrink-0 flex flex-col justify-between border-r border-slate-800/80 transition-all',
+          isMobile 
+            ? 'absolute inset-y-0 left-0 w-72 max-w-[85%] z-50 shadow-2xl'
+            : (isTablet ? 'w-52 static z-20 flex' : 'w-60 lg:w-64 static z-20 flex')
+        ]"
+      >
       <div class="space-y-4 overflow-y-auto pr-1">
         <!-- Brand Header from Screenshot 3 -->
         <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
@@ -636,7 +647,7 @@ function switchSection(sec) {
           </div>
 
           <!-- Close drawer button for mobile -->
-          <button @click="isSidebarOpen = false" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60">
+          <button v-if="isMobile" @click="isSidebarOpen = false" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60">
             <X class="w-4 h-4" />
           </button>
         </div>
@@ -692,7 +703,7 @@ function switchSection(sec) {
       <!-- Bottom Actions from Screenshot 3 -->
       <div class="pt-3 border-t border-slate-800/80 space-y-2">
         <button
-          @click="portfolioStore.setDemoMode('storefront')"
+          @click="portfolioStore.setDemoMode('storefront'); isSidebarOpen = false"
           class="w-full py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition-all"
         >
           <span>Live Storefront</span>
@@ -700,13 +711,14 @@ function switchSection(sec) {
         </button>
 
         <button
-          @click="handleSignOut"
+          @click="handleSignOut(); isSidebarOpen = false"
           class="w-full py-2.5 px-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-900/50 font-bold text-xs flex items-center justify-center gap-2 transition-all"
         >
           <span>🚪 Sign Out</span>
         </button>
       </div>
     </aside>
+    </Transition>
 
     <!-- ================= RIGHT WORKSPACE AREA ================= -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f1f5f9]">
@@ -2628,6 +2640,17 @@ function switchSection(sec) {
 
       </main>
     </div>
-
   </div>
 </template>
+
+<style scoped>
+.admin-drawer-enter-active,
+.admin-drawer-leave-active {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+.admin-drawer-enter-from,
+.admin-drawer-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+</style>
