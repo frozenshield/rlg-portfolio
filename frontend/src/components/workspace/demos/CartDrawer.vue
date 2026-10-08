@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useCartStore } from '../../../stores/cartStore'
+import { usePortfolioStore } from '../../../stores/portfolioStore'
 import { 
   X, 
   ShoppingBag, 
@@ -15,9 +16,18 @@ import {
 } from 'lucide-vue-next'
 
 const cartStore = useCartStore()
+const portfolioStore = usePortfolioStore()
 const promoInput = ref('')
 const promoMessage = ref('')
 const isPromoSuccess = ref(false)
+
+function formatPrice(usdPrice) {
+  if (portfolioStore.currency === 'PHP') {
+    const phpVal = Math.round(usdPrice * 56.5)
+    return `₱${phpVal.toLocaleString()}`
+  }
+  return `$${usdPrice.toFixed(2)}`
+}
 
 function handleApplyPromo() {
   if (!promoInput.value) return
@@ -105,7 +115,7 @@ function handleApplyPromo() {
             <h5 class="text-xs font-bold text-white truncate">{{ item.name }}</h5>
             <span class="text-[10px] text-emerald-400 block mt-0.5">{{ item.condition }}</span>
             <div class="text-xs font-bold text-white mt-1">
-              ${{ item.price.toFixed(2) }}
+              {{ formatPrice(item.price) }}
             </div>
 
             <!-- Qty controls -->
@@ -143,7 +153,7 @@ function handleApplyPromo() {
           <input 
             v-model="promoInput"
             type="text" 
-            placeholder="Promo code: Try RLG10" 
+            placeholder="Promo code: Try HOBBY10 or GUNPLA20" 
             class="flex-1 bg-[#131b2e] border border-indigo-500/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 uppercase focus:outline-none focus:border-indigo-400"
           />
           <button 
@@ -162,19 +172,19 @@ function handleApplyPromo() {
         <div class="space-y-1.5 text-xs text-slate-300">
           <div class="flex justify-between">
             <span class="text-slate-400">Subtotal:</span>
-            <span>${{ cartStore.subtotal.toFixed(2) }}</span>
+            <span>{{ formatPrice(cartStore.subtotal) }}</span>
           </div>
           <div v-if="cartStore.discountPercent > 0" class="flex justify-between text-emerald-400">
             <span>Discount ({{ cartStore.discountPercent }}%):</span>
-            <span>-${{ cartStore.discountAmount.toFixed(2) }}</span>
+            <span>-{{ formatPrice(cartStore.discountAmount) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-slate-400">Insured Shipping:</span>
-            <span>{{ cartStore.shipping === 0 ? 'FREE' : `$${cartStore.shipping.toFixed(2)}` }}</span>
+            <span>{{ cartStore.shipping === 0 ? 'FREE' : formatPrice(cartStore.shipping) }}</span>
           </div>
           <div class="pt-2 border-t border-indigo-500/20 flex justify-between font-bold text-sm text-white">
             <span>Total Amount:</span>
-            <span class="text-emerald-400 text-base">${{ cartStore.total.toFixed(2) }}</span>
+            <span class="text-emerald-400 text-base">{{ formatPrice(cartStore.total) }}</span>
           </div>
         </div>
 

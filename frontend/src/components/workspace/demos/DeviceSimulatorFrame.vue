@@ -168,8 +168,8 @@ const resolutionLabel = computed(() => {
           <div class="absolute -left-[11px] top-56 w-[3px] h-12 bg-slate-600 rounded-l" title="Volume Down" />
           <div class="absolute -right-[11px] top-36 w-[3px] h-16 bg-slate-600 rounded-r" title="Power Button" />
 
-          <!-- Inner Phone Glass Screen -->
-          <div class="w-full h-full bg-[#090d16] rounded-[42px] overflow-hidden flex flex-col justify-between relative border border-slate-700/50">
+          <!-- Inner Phone Glass Screen (creates containing block for fixed position popups and dock) -->
+          <div class="w-full h-full bg-[#090d16] rounded-[42px] overflow-hidden flex flex-col justify-between relative border border-slate-700/50 [transform:translate3d(0,0,0)]">
             
             <!-- Phone Top Status Bar & Dynamic Island -->
             <div class="h-10 px-6 pt-2 bg-[#090d16]/95 backdrop-blur-md flex items-center justify-between text-white text-[11px] font-semibold tracking-tight z-30 shrink-0 select-none">

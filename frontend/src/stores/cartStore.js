@@ -72,11 +72,15 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   function applyPromo(code) {
-    if (code.trim().toUpperCase() === 'RLG10' || code.trim().toUpperCase() === 'SULIT') {
+    const trimmed = code.trim().toUpperCase()
+    if (trimmed === 'HOBBY10' || trimmed === 'RLG10' || trimmed === 'SULIT') {
       discountPercent.value = 10
-      return { success: true, message: '10% Discount applied!' }
+      return { success: true, message: '10% Collector discount applied!' }
+    } else if (trimmed === 'GUNPLA20') {
+      discountPercent.value = 20
+      return { success: true, message: '20% Gunpla drop discount applied!' }
     }
-    return { success: false, message: 'Invalid promo code. Try "RLG10"' }
+    return { success: false, message: 'Invalid promo code. Try "HOBBY10" or "GUNPLA20"' }
   }
 
   async function checkout() {
