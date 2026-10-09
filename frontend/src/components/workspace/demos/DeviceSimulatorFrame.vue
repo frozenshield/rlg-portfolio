@@ -258,8 +258,8 @@ const resolutionLabel = computed(() => {
           </a>
         </div>
 
-        <!-- Browser Viewport Inner Content -->
-        <div class="p-3 sm:p-5 lg:p-6 overflow-x-hidden min-w-0 w-full">
+        <!-- Browser Viewport Inner Content (Fixed Height, Scrollable within Device) -->
+        <div class="h-[750px] overflow-y-auto overflow-x-hidden min-w-0 w-full p-2 sm:p-4 bg-[#090d16]">
           <slot />
         </div>
       </div>
