@@ -1,18 +1,24 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { getProjectById, projects, rlgProjectData, proposalAiProjectData } from '../data/projectsData'
 
 export const usePortfolioStore = defineStore('portfolio', () => {
-  // View mode: 'outer' (Light Bento) or 'workspace' (Dark DevOps Dashboard)
+  // View mode: 'outer' (Light Bento) or 'workspace' (DevOps Dashboard)
   const currentMode = ref('outer')
   
-  // Active Project ID
+  // Active Project ID: 'rlg-online-shop' | 'proposal-ai'
   const activeProjectId = ref('rlg-online-shop')
   
+  // Active Project Computed Object
+  const activeProject = computed(() => {
+    return getProjectById(activeProjectId.value)
+  })
+
   // Workspace Tab Navigation:
   // 'overview' | 'slides' | 'demos' | 'infra' | 'tech' | 'ai' | 'architecture'
   const activeWorkspaceTab = ref('overview')
   
-  // Interactive Demo Toggle: 'admin' | 'storefront'
+  // Interactive Demo Toggle for RLG: 'admin' | 'storefront'
   const activeDemoMode = ref('admin')
 
   // Screen Resolution / Device Frame Mode: 'desktop' | 'tablet' | 'mobile'
@@ -37,12 +43,24 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const isWorkspaceSidebarOpen = ref(false)
 
   // Actions
-  function openWorkspace(projectId = 'rlg-online-shop', initialTab = 'overview') {
+  function openProject(projectId = 'rlg-online-shop', initialTab = 'overview') {
     activeProjectId.value = projectId
     activeWorkspaceTab.value = initialTab
+    currentSlideIndex.value = 0
     currentMode.value = 'workspace'
     isWorkspaceSidebarOpen.value = false
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function switchProject(projectId) {
+    if (activeProjectId.value !== projectId) {
+      activeProjectId.value = projectId
+      currentSlideIndex.value = 0
+    }
+  }
+
+  function openWorkspace(projectId = 'rlg-online-shop', initialTab = 'overview') {
+    openProject(projectId, initialTab)
   }
 
   function closeWorkspace() {
@@ -104,6 +122,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   return {
     currentMode,
     activeProjectId,
+    activeProject,
     activeWorkspaceTab,
     activeDemoMode,
     activeDevice,
@@ -115,6 +134,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     isAiStreaming,
     currency,
     isWorkspaceSidebarOpen,
+    openProject,
+    switchProject,
     openWorkspace,
     closeWorkspace,
     toggleWorkspaceSidebar,

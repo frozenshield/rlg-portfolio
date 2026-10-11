@@ -19,10 +19,10 @@ import {
 } from 'lucide-vue-next'
 
 const portfolioStore = usePortfolioStore()
-const slides = rlgProjectData.slides
+const slides = computed(() => portfolioStore.activeProject?.slides || rlgProjectData.slides)
 
 const currentSlide = computed(() => {
-  return slides[portfolioStore.currentSlideIndex] || slides[0]
+  return slides.value[portfolioStore.currentSlideIndex] || slides.value[0]
 })
 </script>
 
@@ -98,7 +98,7 @@ const currentSlide = computed(() => {
             <div class="flex items-center justify-between pb-2 mb-3 border-b border-indigo-500/20 text-[11px] text-slate-400 font-mono">
               <span class="text-indigo-300 flex items-center gap-1.5 font-semibold">
                 <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                RLG Architecture Matrix
+                {{ portfolioStore.activeProject?.name || 'Enterprise' }} Architecture Matrix
               </span>
               <span>Production Validated</span>
             </div>

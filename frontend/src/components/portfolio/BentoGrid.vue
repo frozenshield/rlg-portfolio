@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import HeroSection from './HeroSection.vue'
 import ProjectShowcaseCard from './ProjectShowcaseCard.vue'
+import ProposalAiCard from './ProposalAiCard.vue'
 import SkillsMatrix from './SkillsMatrix.vue'
 import { usePortfolioStore } from '../../stores/portfolioStore'
 import { 
@@ -39,8 +40,26 @@ function copyEmailAddress() {
     <!-- Hero Section -->
     <HeroSection />
 
-    <!-- Flagship Showcase Bento Card (RLG Online Shop) -->
-    <ProjectShowcaseCard />
+    <!-- Flagship Enterprise Projects Section -->
+    <div id="projects" class="space-y-8">
+      <div class="flex items-center justify-between pb-1 border-b border-slate-200/80">
+        <div>
+          <span class="text-xs uppercase tracking-widest font-bold text-indigo-600 block">Production Workspaces</span>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Flagship Enterprise Architectures
+          </h3>
+        </div>
+        <span class="text-xs font-mono text-slate-400 hidden sm:inline">
+          2 Active Production Suites
+        </span>
+      </div>
+
+      <!-- Flagship 1: RLG Online Shop (E-Commerce Monorepo & Vision OCR) -->
+      <ProjectShowcaseCard />
+
+      <!-- Flagship 2: ProposalAI (Enterprise B2B AI Proposal Generator & Supabase RAG) -->
+      <ProposalAiCard />
+    </div>
 
     <!-- Skills, Tooling & Infrastructure Matrix -->
     <SkillsMatrix />

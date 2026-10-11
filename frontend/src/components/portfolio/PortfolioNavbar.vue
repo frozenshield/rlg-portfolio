@@ -34,7 +34,8 @@ function scrollTo(id) {
       <!-- Navigation links -->
       <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
         <button @click="scrollTo('about')" class="hover:text-indigo-600 transition-colors">About</button>
-        <button @click="scrollTo('project-rlg')" class="hover:text-indigo-600 transition-colors">RLG Project</button>
+        <button @click="scrollTo('project-rlg')" class="hover:text-indigo-600 transition-colors">RLG Shop</button>
+        <button @click="scrollTo('project-proposal-ai')" class="hover:text-teal-600 transition-colors font-semibold text-teal-700">ProposalAI</button>
         <button @click="scrollTo('skills-matrix')" class="hover:text-indigo-600 transition-colors">Tech Matrix</button>
         <button @click="scrollTo('architecture')" class="hover:text-indigo-600 transition-colors">Architecture</button>
         <button @click="scrollTo('contact')" class="hover:text-indigo-600 transition-colors">Contact</button>

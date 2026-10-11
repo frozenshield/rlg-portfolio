@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue'
+import { usePortfolioStore } from '../../stores/portfolioStore'
 import { 
   Server, 
   Globe2, 
@@ -8,179 +10,239 @@ import {
   Terminal, 
   ShieldCheck, 
   Layers, 
-  Zap,
-  ArrowRight,
-  Cpu
+  Zap, 
+  ArrowRight, 
+  Cpu,
+  Database,
+  CreditCard
 } from 'lucide-vue-next'
+
+const portfolioStore = usePortfolioStore()
+const isProposalAi = computed(() => portfolioStore.activeProjectId === 'proposal-ai')
 </script>
 
 <template>
   <div class="space-y-6 text-left">
-    <!-- Header -->
-    <div class="p-6 rounded-2xl bg-[#0f172a] border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-medium mb-2">
-          <Radio class="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-          <span>Production Infrastructure: 99.98% Healthy</span>
-        </div>
-        <h3 class="text-xl sm:text-2xl font-extrabold text-white">Railway Cloud Platform & Namecheap DNS Routing</h3>
-        <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-          Multi-service container runtime deployed with automated GitHub CI/CD webhooks, Redis job queues, and apex domain DNS orchestration for <code class="text-indigo-400 font-mono">rlgonlineshop.com</code>.
-        </p>
-      </div>
-
-      <a 
-        href="https://rlgonlineshop.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all shrink-0"
-      >
-        <span>Inspect Live Production</span>
-        <ExternalLink class="w-3.5 h-3.5" />
-      </a>
-    </div>
-
-    <!-- 2 Column Topology Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      <!-- Railway Container Architecture -->
-      <div class="p-6 rounded-2xl bg-[#131b2e] border border-indigo-500/20 space-y-4">
-        <div class="flex items-center gap-3 pb-3 border-b border-indigo-500/20">
-          <div class="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-            <Server class="w-5 h-5" />
+    
+    <!-- ================= PROPOSALAI DEPLOYMENT TOPOLOGY ================= -->
+    <template v-if="isProposalAi">
+      <!-- Header -->
+      <div class="p-6 rounded-2xl bg-white border border-teal-200/90 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-mono font-medium mb-2">
+            <Radio class="w-3.5 h-3.5 animate-pulse text-emerald-500" />
+            <span>Vercel Edge Cloud & Supabase: Production Ready</span>
           </div>
-          <div>
-            <h4 class="font-bold text-white text-base">Railway Cloud Services</h4>
-            <span class="text-xs text-slate-400">Automated Nixpack Multi-Container Environment</span>
-          </div>
-        </div>
-
-        <div class="space-y-3 text-xs">
-          <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
-            <div>
-              <span class="font-bold text-white block">Web Service (PHP 8.3 + FPM)</span>
-              <span class="text-[11px] text-slate-400">Laravel 11 REST API & Inertia SSR Server</span>
-            </div>
-            <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
-              Active • 512MB RAM
-            </span>
-          </div>
-
-          <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
-            <div>
-              <span class="font-bold text-white block">Queue Worker (Redis)</span>
-              <span class="text-[11px] text-slate-400">Asynchronous Gemini Vision & SEO background jobs</span>
-            </div>
-            <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
-              Active • 2 Workers
-            </span>
-          </div>
-
-          <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
-            <div>
-              <span class="font-bold text-white block">Managed MySQL 8.0</span>
-              <span class="text-[11px] text-slate-400">Automated daily snapshots, JSON indexing</span>
-            </div>
-            <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
-              Healthy • 10GB SSD
-            </span>
-          </div>
-        </div>
-
-        <div class="pt-2 text-[11px] text-slate-400 font-mono space-y-1">
-          <div class="flex justify-between">
-            <span>Deploy trigger:</span>
-            <span class="text-indigo-400">git push origin main</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Build time:</span>
-            <span class="text-indigo-400">42 seconds (cached Nixpack layers)</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Rollout strategy:</span>
-            <span class="text-emerald-400">Zero-Downtime Healthcheck Gate</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Namecheap DNS Configuration -->
-      <div class="p-6 rounded-2xl bg-[#131b2e] border border-indigo-500/20 space-y-4">
-        <div class="flex items-center gap-3 pb-3 border-b border-indigo-500/20">
-          <div class="p-2 rounded-xl bg-purple-500/20 text-purple-400">
-            <Globe2 class="w-5 h-5" />
-          </div>
-          <div>
-            <h4 class="font-bold text-white text-base">Namecheap DNS Orchestration</h4>
-            <span class="text-xs text-slate-400">Domain zone records for rlgonlineshop.com</span>
-          </div>
-        </div>
-
-        <!-- DNS Records Table -->
-        <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20">
-          <table class="w-full text-left font-mono text-[11px]">
-            <thead class="text-slate-500 border-b border-indigo-500/20">
-              <tr>
-                <th class="pb-2">Type</th>
-                <th class="pb-2">Host</th>
-                <th class="pb-2">Target / IP</th>
-                <th class="pb-2">TTL</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-indigo-500/10 text-slate-300">
-              <tr>
-                <td class="py-2 text-indigo-400 font-bold">A Record</td>
-                <td class="py-2">@</td>
-                <td class="py-2 text-slate-300">199.36.158.100 (Railway Edge)</td>
-                <td class="py-2 text-slate-500">Automatic</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-purple-400 font-bold">CNAME</td>
-                <td class="py-2">www</td>
-                <td class="py-2 text-slate-300">rlgonlineshop.com</td>
-                <td class="py-2 text-slate-500">Automatic</td>
-              </tr>
-              <tr>
-                <td class="py-2 text-cyan-400 font-bold">TXT</td>
-                <td class="py-2">@</td>
-                <td class="py-2 text-slate-300">v=spf1 include:relay.railway.app ~all</td>
-                <td class="py-2 text-slate-500">Automatic</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 space-y-2 text-xs">
-          <div class="flex items-center gap-2 text-emerald-400 font-semibold">
-            <ShieldCheck class="w-4 h-4" />
-            <span>Automated SSL / TLS Encryption</span>
-          </div>
-          <p class="text-[11px] text-slate-300 leading-relaxed">
-            Let's Encrypt automated TLS certificate issuance with SNI wildcard verification and automatic 60-day renewal cycle managed directly by Railway Edge Proxy.
+          <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">Vercel Serverless & Supabase pgvector Architecture</h3>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+            Modern serverless B2B architecture combining Vercel's global edge network with Supabase PostgreSQL 17 vector storage and dual payment rails (Stripe + PayMongo).
           </p>
         </div>
+
+        <a 
+          href="https://proposal-ai.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-teal-600/25 transition-all shrink-0"
+        >
+          <span>Vercel Deployment</span>
+          <ExternalLink class="w-3.5 h-3.5" />
+        </a>
       </div>
 
-    </div>
+      <!-- 2 Column Topology Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Vercel Edge Architecture -->
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <div class="p-2 rounded-xl bg-teal-50 text-teal-600">
+              <Globe2 class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-base">Vercel Edge Platform</h4>
+              <span class="text-xs text-slate-400">Serverless Functions & Instant Global CDN</span>
+            </div>
+          </div>
 
-    <!-- Live Terminal Deployment Logs Simulator -->
-    <div class="p-5 rounded-2xl bg-[#090d16] border border-indigo-500/30 font-mono text-xs">
-      <div class="flex items-center justify-between pb-3 mb-3 border-b border-indigo-500/20 text-slate-400 text-[11px]">
-        <div class="flex items-center gap-2">
-          <Terminal class="w-4 h-4 text-indigo-400" />
-          <span>Railway Build Log: deployment-railway-prod-77a8.log</span>
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">Edge Middleware</span>
+                <p class="text-slate-500 text-[11px]">Tenant quota validation and authentication token gate</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-teal-50 text-teal-700 border border-teal-200 font-bold">&lt; 12ms</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">Serverless Generation Function</span>
+                <p class="text-slate-500 text-[11px]">Gemini Flash-Lite API gateway with streaming SSE response</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Node 20.x</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">Automated Git Rollouts</span>
+                <p class="text-slate-500 text-[11px]">Instant preview environments on pull request creation</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-slate-100 text-slate-700 font-bold">Zero Downtime</span>
+            </div>
+          </div>
         </div>
-        <span class="text-emerald-400">Exit Code: 0 (SUCCESS)</span>
+
+        <!-- Supabase Database & Payment Rails -->
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+            <div class="p-2 rounded-xl bg-sky-50 text-sky-600">
+              <Database class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-base">Supabase & Payment Infrastructure</h4>
+              <span class="text-xs text-slate-400">PostgreSQL 17, pgvector & Webhook Gateway</span>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">PostgreSQL 17 + pgvector</span>
+                <p class="text-slate-500 text-[11px]">768-dim HNSW vector cosine similarity table `won_pitches`</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-sky-50 text-sky-700 border border-sky-200 font-bold">Managed Cloud</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">Stripe Cashier & PayMongo</span>
+                <p class="text-slate-500 text-[11px]">Global credit cards + Southeast Asian eWallets (GCash, Maya)</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">Idempotent</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-slate-800">Row Level Security (RLS)</span>
+                <p class="text-slate-500 text-[11px]">Multi-tenant isolation verified by automated policy test suite</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Enforced</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </template>
+
+    <!-- ================= RLG ONLINE SHOP DEPLOYMENT TOPOLOGY ================= -->
+    <template v-else>
+      <!-- Header -->
+      <div class="p-6 rounded-2xl bg-[#0f172a] border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-medium mb-2">
+            <Radio class="w-3.5 h-3.5 animate-pulse text-emerald-400" />
+            <span>Production Infrastructure: 99.98% Healthy</span>
+          </div>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-white">Railway Cloud Platform & Namecheap DNS Routing</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+            Multi-service container runtime deployed with automated GitHub CI/CD webhooks, Redis job queues, and apex domain DNS orchestration for <code class="text-indigo-400 font-mono">rlgonlineshop.com</code>.
+          </p>
+        </div>
+
+        <a 
+          href="https://rlgonlineshop.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all shrink-0"
+        >
+          <span>Inspect Live Production</span>
+          <ExternalLink class="w-3.5 h-3.5" />
+        </a>
       </div>
 
-      <div class="space-y-1 text-slate-300 text-[11px] leading-relaxed overflow-x-auto max-h-48">
-        <p class="text-slate-500">[2026-10-07 20:58:12] ===> Building environment using Nixpacks (PHP 8.3 + Node 22)</p>
-        <p class="text-slate-400">[2026-10-07 20:58:18] composer install --no-dev --optimize-autoloader --prefer-dist</p>
-        <p class="text-slate-400">[2026-10-07 20:58:25] npm run build (Vite 6 + Vue 3 bundle chunking: 142kb gzipped)</p>
-        <p class="text-indigo-400">[2026-10-07 20:58:34] php artisan optimize:clear && php artisan config:cache && php artisan route:cache</p>
-        <p class="text-purple-400">[2026-10-07 20:58:40] Executing health check against https://rlgonlineshop.com/healthz ...</p>
-        <p class="text-emerald-400 font-bold">[2026-10-07 20:58:42] HTTP 200 OK. Traffic seamlessly switched to container 172.18.0.4.</p>
+      <!-- 2 Column Topology Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Railway Container Architecture -->
+        <div class="p-6 rounded-2xl bg-[#131b2e] border border-indigo-500/20 space-y-4">
+          <div class="flex items-center gap-3 pb-3 border-b border-indigo-500/20">
+            <div class="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+              <Server class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="font-bold text-white text-base">Railway Cloud Services</h4>
+              <span class="text-xs text-slate-400">Automated Nixpack Multi-Container Environment</span>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Service 1: Laravel Web & REST API</span>
+                <p class="text-slate-400 text-[11px]">Nixpack container, PHP 8.3-FPM + Nginx</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30">Healthy</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Service 2: MySQL 8.0 Database</span>
+                <p class="text-slate-400 text-[11px]">Managed volume with daily snapshots</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30">Persistent</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Service 3: Redis In-Memory Worker</span>
+                <p class="text-slate-400 text-[11px]">Asynchronous queue worker for AI jobs</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-purple-950 text-purple-400 border border-purple-500/30">Active</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Namecheap DNS & Edge Routing -->
+        <div class="p-6 rounded-2xl bg-[#131b2e] border border-indigo-500/20 space-y-4">
+          <div class="flex items-center gap-3 pb-3 border-b border-indigo-500/20">
+            <div class="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+              <Globe2 class="w-5 h-5" />
+            </div>
+            <div>
+              <h4 class="font-bold text-white text-base">Namecheap DNS Configuration</h4>
+              <span class="text-xs text-slate-400">Zone File Records for rlgonlineshop.com</span>
+            </div>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Apex A-Record (@)</span>
+                <p class="text-slate-400 text-[11px]">Points directly to Railway edge gateway</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-slate-800 text-slate-300">TTL 300</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">CNAME Record (www)</span>
+                <p class="text-slate-400 text-[11px]">Proxies www alias to rlgonlineshop.com</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-slate-800 text-slate-300">Active</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-[#090d16] border border-indigo-500/20 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-white">Edge SSL / Let's Encrypt TLS</span>
+                <p class="text-slate-400 text-[11px]">Automated 90-day certificate rotation</p>
+              </div>
+              <span class="px-2 py-0.5 rounded font-mono text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30">Auto TLS</span>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
+    </template>
+
   </div>
 </template>
-

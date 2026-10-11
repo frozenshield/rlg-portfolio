@@ -2,7 +2,7 @@ export const developerBio = {
   name: "Senior Frontend Engineer & Creative UI Architect",
   handle: "rlg-architect",
   tagline: "Bridging Enterprise Frontend Systems & Autonomous AI Pipelines",
-  summary: "Specializing in Vue 3 (Composition API), Laravel full-stack architectures, high-performance UI engineering, and end-to-end multimodal AI automation (Gemini Vision OCR, automated SEO schemas, real-time conversational agents).",
+  summary: "Specializing in Vue 3 (Composition API), Laravel full-stack architectures, high-performance UI engineering, and end-to-end multimodal AI automation (Gemini Vision OCR, Supabase pgvector RAG, automated SEO schemas, real-time conversational agents).",
   location: "Manila / Remote Worldwide",
   availability: "Available for Senior Architect roles & technical consulting",
   experienceYears: "7+ Years",
@@ -34,8 +34,10 @@ export const skillsMatrix = [
     color: "from-red-500/10 to-rose-500/10 text-rose-600 border-rose-200",
     skills: [
       { name: "Laravel 11", level: "Expert", desc: "Service Layer pattern, Form Requests, Queues, Eloquent ORM" },
+      { name: "PostgreSQL 17 & Supabase", level: "Expert", desc: "pgvector 768-dim HNSW index, RAG embeddings, Row Level Security" },
       { name: "MySQL / Relational DB", level: "Advanced", desc: "Indexing, transactions, query profiling, JSON columns" },
       { name: "Inertia.js", level: "Expert", desc: "Modern monolith glue without client-side routing overhead" },
+      { name: "PayMongo & Stripe", level: "Expert", desc: "Subscription gating, Webhook idempotency, Cashier integration" },
       { name: "RESTful APIs", level: "Expert", desc: "Idempotency, OAuth2 / Sanctum, rate limiting, OpenAPI" }
     ]
   },
@@ -45,7 +47,7 @@ export const skillsMatrix = [
     color: "from-emerald-500/10 to-teal-500/10 text-teal-600 border-teal-200",
     skills: [
       { name: "Vue 3 (<script setup>)", level: "Expert", desc: "Composition API, reactive ref/computed, Custom Composables" },
-      { name: "Pinia", level: "Expert", desc: "Modular stores, action subscriptions, persistent state" },
+      { name: "Pinia", level: "Expert", desc: "Modular stores, action subscriptions, real-time ledger math" },
       { name: "Vite", level: "Advanced", desc: "Blazing HMR, rollup bundle chunking, asset prefetching" },
       { name: "Mobile-First PWA", level: "Advanced", desc: "Service workers, offline caching, Capacitor wrapping" }
     ]
@@ -55,10 +57,11 @@ export const skillsMatrix = [
     icon: "Sparkles",
     color: "from-purple-500/10 to-violet-500/10 text-purple-600 border-purple-200",
     skills: [
+      { name: "Gemini 2.5 Pro & Flash-Lite", level: "Expert", desc: "High-speed B2B proposal generation, structured JSON mode" },
+      { name: "Supabase pgvector RAG", level: "Expert", desc: "gemini-embedding-2 cosine similarity search over won pitches" },
       { name: "Gemini API (Vision)", level: "Expert", desc: "Multimodal image-to-text OCR for card set, condition & serial extraction" },
       { name: "Automated SEO Generation", level: "Expert", desc: "Auto-generating meta tags, search slugs & JSON-LD structured schemas" },
-      { name: "Conversational E-Commerce Bot", level: "Advanced", desc: "Function calling, live inventory context, recommendation embeddings" },
-      { name: "Prompt Architecture", level: "Expert", desc: "Structured JSON output schema validation & system steering" }
+      { name: "Conversational E-Commerce Bot", level: "Advanced", desc: "Function calling, live inventory context, recommendation embeddings" }
     ]
   },
   {
@@ -66,6 +69,7 @@ export const skillsMatrix = [
     icon: "Cloud",
     color: "from-sky-500/10 to-cyan-500/10 text-cyan-600 border-cyan-200",
     skills: [
+      { name: "Vercel Edge Cloud", level: "Expert", desc: "Serverless functions, instant edge rollouts, preview environments" },
       { name: "Railway Cloud Deploy", level: "Advanced", desc: "Multi-service container orchestration, Nixpacks, continuous deployment" },
       { name: "Namecheap DNS Routing", level: "Advanced", desc: "Apex A records, CNAME alias proxying, custom domain SSL/TLS" },
       { name: "Redis Caching", level: "Advanced", desc: "Session store, cache tagging, queue workers" },
@@ -79,7 +83,7 @@ export const skillsMatrix = [
     skills: [
       { name: "Google Antigravity", level: "Advanced", desc: "Autonomous agent pair-programming & workflow dispatch" },
       { name: "Google Jules", level: "Advanced", desc: "Asynchronous multi-turn PR validation & code analysis" },
-      { name: "Playwright E2E", level: "Advanced", desc: "Headless browser checkout test suites & regression runs" },
+      { name: "Playwright & Vitest", level: "Advanced", desc: "Headless browser E2E test suites & component regression runs" },
       { name: "n8n Workflow Automation", level: "Advanced", desc: "Webhook orchestration, inventory sync, notification pipelines" }
     ]
   }
@@ -96,6 +100,7 @@ export const rlgProjectData = {
   hostProvider: "Railway Deployed",
   dnsProvider: "Namecheap DNS",
   shortSummary: "A production e-commerce platform and inventory engine for collectible trading cards (Japanese Pokémon, One Piece, Yu-Gi-Oh!). Engineered with Laravel 11, Vue 3, Inertia.js, and an autonomous AI intake pipeline powered by Gemini Vision.",
+  theme: "dark-cyber",
   metrics: [
     { label: "FULL-STACK ARCHITECTURE", main: "Laravel", sub: "Laravel, Vue 3, Inertia.js", icon: "Layers" },
     { label: "AI-POWERED PIPELINES", main: "3 Active Engines", sub: "(Vision, SEO, Chat)", icon: "Cpu" },
@@ -334,3 +339,261 @@ export const rlgProjectData = {
   ]
 }
 
+export const proposalAiProjectData = {
+  id: "proposal-ai",
+  name: "ProposalAI",
+  fullName: "ProposalAI — Enterprise B2B AI Proposal Generator",
+  tagline: "Production-grade multi-tenant B2B platform automating the drafting, financial modeling, and dispatch of high-conversion sales proposals using Gemini and Supabase pgvector.",
+  productionUrl: "https://proposal-ai.vercel.app",
+  githubUrl: "https://github.com/rlg-portfolio/proposal-ai-b2b",
+  status: "Production Ready 🟢",
+  aiStatus: "Active 🟢",
+  vectorStatus: "Connected 🟢",
+  hostProvider: "Vercel Edge Cloud",
+  dnsProvider: "Supabase Database & Vercel DNS",
+  shortSummary: "Production-grade multi-tenant B2B platform automating the drafting, financial modeling, and dispatch of high-conversion sales proposals using Gemini and Supabase pgvector.",
+  theme: "light-enterprise",
+  themeColors: {
+    bg: "#f8fafc",
+    surface: "#ffffff",
+    border: "#e2e8f0",
+    accent: "#0d9488",
+    emerald: "#10b981",
+    subtle: "#64748b"
+  },
+  badges: [
+    "Laravel 11",
+    "Vue 3.5 + Inertia",
+    "PostgreSQL 17 + pgvector",
+    "Supabase",
+    "Gemini Flash-Lite 3.5 & 2.5 Pro",
+    "Stripe Cashier",
+    "PayMongo Gateway",
+    "Vercel Deploy",
+    "Tailwind CSS"
+  ],
+  stats: {
+    generationSpeed: "< 3.2s",
+    aiModels: "Gemini 2.5 Pro / Flash-Lite / Embedding-2",
+    vectorStore: "Supabase pgvector (768-dim HNSW)",
+    architecture: "Queue-Centric Asynchronous RAG"
+  },
+  metrics: [
+    { 
+      label: "AI PROPOSAL DRAFTING", 
+      main: "Gemini Flash-Lite", 
+      sub: "3.5 & Pro", 
+      icon: "Sparkles", 
+      color: "text-teal-600",
+      badgeText: "High Speed & Low Cost"
+    },
+    { 
+      label: "VECTOR SEARCH (RAG)", 
+      main: "Supabase", 
+      sub: "PostgreSQL pgvector", 
+      icon: "Zap", 
+      color: "text-emerald-600",
+      badgeText: "768-dim HNSW"
+    },
+    { 
+      label: "SUBTOTAL & MARGINS", 
+      main: "Real-time ledger", 
+      sub: "recalculations", 
+      icon: "BarChart3", 
+      color: "text-teal-600",
+      badgeText: "Pinia Math"
+    },
+    { 
+      label: "LEARNING FLYWHEEL", 
+      main: "Store 'won' bids", 
+      sub: "automatically", 
+      icon: "TrendingUp", 
+      color: "text-purple-600",
+      badgeText: "Self-Improving"
+    }
+  ],
+  techBadges: [
+    { name: "Laravel 11 & Vue 3 + Inertia.js", subtitle: "Full-Stack B2B Monorepo", icon: "Component" },
+    { name: "Gemini AI & Embeddings v2", subtitle: "Flash-Lite & 2.5 Pro", icon: "Sparkles" },
+    { name: "pgvector Vector Store", subtitle: "Supabase PostgreSQL", icon: "Database" },
+    { name: "Stripe & PayMongo Gating", subtitle: "Freemium Quotas & Cashier", icon: "CreditCard" }
+  ],
+  techStackCategories: {
+    backend: "Laravel 11, Clean Architecture (Services, Form Requests, Jobs), Laravel Cashier (Stripe) & PayMongo SDK",
+    frontend: "Vue 3.5 (Composition API, <script setup>), Inertia.js v3, Pinia, Tailwind CSS",
+    aiAndRag: "Gemini Service (Prompt + Context + Top-3 Cosine Similarity Pitches), gemini-embedding-2, pgvector cosine search",
+    databaseAndQueues: "PostgreSQL 17 on Supabase, Redis/Database Queue Workers, Vercel Serverless & Edge Network"
+  },
+  slides: [
+    {
+      id: 1,
+      title: "Slide 1: Executive Overview & Problem Statement",
+      subtitle: "Enterprise B2B Proposal Bottlenecks & Solution Architecture",
+      previewType: "b2b-overview",
+      bulletPoints: [
+        "Problem: Enterprise sales teams waste 14+ hours per proposal manually researching, writing scope, and reconciling pricing.",
+        "Solution: ProposalAI generates full, high-converting commercial proposals in < 3.2s with context-aware RAG.",
+        "Engineered with Laravel 11 Clean Architecture, Vue 3.5, Supabase PostgreSQL, and Gemini Flash-Lite.",
+        "Guaranteed mathematical precision: AI drafts narrative, while Pinia and Laravel enforce rigorous ledger math."
+      ],
+      talkTrackNotes: "Enterprise sales deals live or die by response turnaround. Traditional RFPs take days of manual copy-pasting across disparate docs. ProposalAI solves this by combining Gemini's reasoning with pgvector retrieval and strict financial calculation routines.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 2,
+      title: "Slide 2: Asynchronous Queue Architecture & Sequence Flow",
+      subtitle: "Zero-Timeout Generation via Background Jobs & Live Polling",
+      previewType: "queue-architecture",
+      bulletPoints: [
+        "Long-running AI jobs are dispatched to Redis/Database queue workers to avoid HTTP gateway timeouts.",
+        "Frontend utilizes Inertia.js and optimistic state updates with real-time SSE / polling.",
+        "Graceful degradation: fallback from Gemini 2.5 Pro to Flash-Lite if latency thresholds are exceeded.",
+        "Resilient idempotency keys prevent duplicate invoice and proposal generation runs."
+      ],
+      talkTrackNotes: "When communicating with LLMs in an enterprise SaaS, web requests can easily exceed 30-second gateway limits. We decouple the proposal trigger into an asynchronous queue job. The client receives an immediate job receipt, displaying real-time shimmer and status updates.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 3,
+      title: "Slide 3: Retrieval-Augmented Generation (RAG) with Supabase pgvector",
+      subtitle: "768-Dimensional HNSW Cosine Similarity for Pitch Relevance",
+      previewType: "rag-vector",
+      bulletPoints: [
+        "Historical winning proposals are chunked and vectorized via Google gemini-embedding-2.",
+        "Supabase PostgreSQL stores vectors with an optimized HNSW index for sub-15ms cosine similarity querying.",
+        "During drafting, the top-3 historically won pitches matching client industry & tech stack are injected into prompt context.",
+        "Result: Higher close rates and pitches that emulate the company's best sales closers."
+      ],
+      talkTrackNotes: "Vanilla LLMs produce generic boilerplate. By grounding Gemini with the top-3 won proposals from Supabase pgvector, the AI writes tailored case studies, pricing structures, and tone that has already demonstrated commercial success.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 4,
+      title: "Slide 4: Real-time Reactive Financial Ledger (Pinia)",
+      subtitle: "Deterministic Math Separation from LLM Generation",
+      previewType: "financial-ledger",
+      bulletPoints: [
+        "Never let the LLM do financial arithmetic: Pinia store calculates quantity, discounts, VAT (12%), and grand totals.",
+        "Dynamic Line Items: Real-time volume discount curves, multi-currency switching, and tax rule validation.",
+        "Export-ready data model ensures identical numbers between client canvas, PDF invoice, and Stripe charge.",
+        "Seamless two-way binding allows sales reps to override AI-suggested scope and watch ledger update in 0ms."
+      ],
+      talkTrackNotes: "One of our core architectural tenets is deterministic financial calculation. We never allow generative models to add numbers. The AI proposes the line items, but Pinia and Laravel's backend validation calculate every single cent with decimal precision.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 5,
+      title: "Slide 5: Multi-Tenant Quotas & Stripe / PayMongo Freemium Gating",
+      subtitle: "Commercial Monetization & Subscription Security",
+      previewType: "subscription-gating",
+      bulletPoints: [
+        "Tiered Quota Architecture: Free tier (5 proposals/month), Pro (50 proposals), Enterprise (Unlimited).",
+        "Dual Payment Gateways: Stripe Cashier for global credit cards + PayMongo for Southeast Asian local payment rails.",
+        "Middleware quota interception: Requests blocked at API gateway when quota is exhausted with 402 Payment Required.",
+        "Supabase Row Level Security (RLS) ensures absolute data isolation between tenant organizations."
+      ],
+      talkTrackNotes: "Monetization is enforced at both the database and gateway levels. Tenants on the free tier see a visual quota progress indicator. Exceeding limits triggers an upgrade modal integrated with Stripe Cashier and PayMongo.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 6,
+      title: "Slide 6: Self-Improving RAG Flywheel (Won Proposals Indexing)",
+      subtitle: "Continuous Learning from Deal Outcomes Without Model Retraining",
+      previewType: "learning-flywheel",
+      bulletPoints: [
+        "Sales reps click 'Mark as Won & Vectorize' when a deal closes.",
+        "Automated background pipeline extracts high-leverage value props, discounts, and executive phrases.",
+        "Vectors written to Supabase `won_pitches` table immediately refresh the RAG knowledge corpus.",
+        "Flywheel effect: every closed enterprise contract makes all future proposals higher quality."
+      ],
+      talkTrackNotes: "The true moat of ProposalAI is the self-improving RAG flywheel. When a team closes a $100k deal, clicking one button vectorizes that proposal into Supabase pgvector. The system becomes progressively smarter and higher-converting over time.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 7,
+      title: "Slide 7: Clean Architecture in Laravel 11 & Form Requests",
+      subtitle: "Enterprise Separation of Concerns and Domain Services",
+      previewType: "clean-architecture",
+      bulletPoints: [
+        "Domain-Driven Structure: `GenerateProposalService`, `PgVectorSearchService`, `FinancialLedgerCalculator`.",
+        "Strict Form Requests enforce schema validation on CRM inputs, deliverable arrays, and prompt character limits.",
+        "Inertia.js v3 delivers single-page speed with standard server-side routing security.",
+        "Zero boilerplate, high maintainability, and clean dependency injection throughout."
+      ],
+      talkTrackNotes: "The Laravel backend strictly adheres to Clean Architecture. Controllers remain lean coordinators, delegating prompt synthesis to `GenerateProposalService` and vector math to `PgVectorSearchService`. Form requests guarantee payload integrity.",
+      presenter: "Senior UI & Systems Architect"
+    },
+    {
+      id: 8,
+      title: "Slide 8: Automated Testing Strategy (Pest & Vitest)",
+      subtitle: "15 Tests / 70 Assertions for Flawless Reliability",
+      previewType: "testing-strategy",
+      bulletPoints: [
+        "Pest PHP test suite validates quota middleware, RAG cosine fallback, and invoice ledger precision.",
+        "Vitest frontend tests verify Pinia discount math, reactive line item manipulation, and character count guards.",
+        "Playwright E2E tests run full lifecycle: Client Dossier ➔ Gemini Generation ➔ Won Vectorization.",
+        "Zero regressions across continuous Vercel and Supabase deployment pipelines."
+      ],
+      talkTrackNotes: "Reliability in commercial sales tools is non-negotiable. Our dual test suite in Pest and Vitest covers 70 assertions, ensuring financial calculations, quota blocks, and vector embeddings remain regression-free on every commit.",
+      presenter: "Senior UI & Systems Architect"
+    }
+  ],
+  demoPresets: [
+    {
+      id: "acme-corp",
+      name: "Acme Corp — Enterprise B2B SaaS Deal",
+      clientName: "Acme Corporation",
+      email: "procurement@acme.com",
+      firstName: "Sarah",
+      lastName: "Jenkins",
+      industry: "Enterprise SaaS & Cloud Infrastructure",
+      directive: "Focus on 6-month ROI, zero-downtime microservices cutover, and ISO 27001 data residency compliance.",
+      deliverables: [
+        { name: "Cloud Architecture Audit & Security Assessment", unitPrice: 3500, qty: 1, discount: 0 },
+        { name: "Microservices Cutover & Zero-Downtime Migration", unitPrice: 8500, qty: 1, discount: 10 },
+        { name: "Supabase pgvector Knowledge Base Setup", unitPrice: 4200, qty: 1, discount: 5 },
+        { name: "Enterprise 24/7 SLA & Incident Management Support", unitPrice: 1200, qty: 6, discount: 15 }
+      ]
+    },
+    {
+      id: "fintech-global",
+      name: "FinTech Global — AI Compliance Engine",
+      clientName: "FinTech Global Ltd",
+      email: "cto@fintechglobal.io",
+      firstName: "Marcus",
+      lastName: "Vance",
+      industry: "Banking & Financial Services",
+      directive: "Highlight real-time auditability, SOC2 compliance, and PayMongo payment integration readiness.",
+      deliverables: [
+        { name: "Regulatory Compliance Audit Pipeline", unitPrice: 6000, qty: 1, discount: 0 },
+        { name: "Payment Rails Integration (Stripe & PayMongo)", unitPrice: 4800, qty: 1, discount: 10 },
+        { name: "Executive AI Risk Advisory & Model Guardrails", unitPrice: 3200, qty: 2, discount: 10 }
+      ]
+    },
+    {
+      id: "retail-ai",
+      name: "OmniRetail — Autonomous Inventory Sync",
+      clientName: "OmniRetail Group",
+      email: "operations@omniretail.com",
+      firstName: "Elena",
+      lastName: "Reyes",
+      industry: "Omnichannel Retail & E-Commerce",
+      directive: "Emphasize inventory accuracy, webhook idempotency, and automated customer re-engagement.",
+      deliverables: [
+        { name: "Multimodal Inventory Vision Ingestion Setup", unitPrice: 5500, qty: 1, discount: 10 },
+        { name: "Automated SEO & Search Indexing Pipeline", unitPrice: 2800, qty: 1, discount: 0 },
+        { name: "Omnichannel Order Sync Microservice", unitPrice: 4500, qty: 1, discount: 5 }
+      ]
+    }
+  ]
+}
+
+export const projects = [
+  rlgProjectData,
+  proposalAiProjectData
+]
+
+export function getProjectById(id) {
+  if (id === 'proposal-ai') return proposalAiProjectData
+  return rlgProjectData
+}
