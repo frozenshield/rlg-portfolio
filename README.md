@@ -6,33 +6,30 @@
 
 <p align="center">
   <strong>Senior Frontend Engineer & Creative UI Architect Portfolio</strong><br />
-  A dual-surface developer portfolio featuring a modern light Bento grid UI and an immersive, dark SaaS/DevOps architectural workspace with interactive multi-device simulators, slide deck talk tracks, and autonomous AI automation pipelines.
+  A dual-surface developer portfolio featuring a modern light Bento grid UI and an immersive architectural workspace with interactive multi-device simulators, live proposal studios, slide deck talk tracks, and autonomous AI automation pipelines.
 </p>
 
 <p align="center">
   <a href="https://rlgonlineshop.com" target="_blank">
-    <img src="https://img.shields.io/badge/Production-rlgonlineshop.com-emerald?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Production Live Site" />
+    <img src="https://img.shields.io/badge/Production-rlgonlineshop.com-emerald?style=for-the-badge&logo=google-chrome&logoColor=white" alt="RLG Online Shop Live" />
+  </a>
+  <a href="https://proposal-ai.vercel.app" target="_blank">
+    <img src="https://img.shields.io/badge/ProposalAI-Vercel_Deploy-0d9488?style=for-the-badge&logo=vercel&logoColor=white" alt="ProposalAI Vercel Deploy" />
   </a>
   <a href="#-tech-stack--tooling">
-    <img src="https://img.shields.io/badge/Vue_3-3.5+-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue 3" />
+    <img src="https://img.shields.io/badge/Vue_3.5-Composition_API-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white" alt="Vue 3.5" />
   </a>
   <a href="#-tech-stack--tooling">
-    <img src="https://img.shields.io/badge/Vite-8.3+-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+    <img src="https://img.shields.io/badge/Laravel_11-Clean_Architecture-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 11" />
   </a>
   <a href="#-tech-stack--tooling">
-    <img src="https://img.shields.io/badge/Tailwind_CSS-3.4+-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+    <img src="https://img.shields.io/badge/Supabase-PostgreSQL_pgvector-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase pgvector" />
   </a>
   <a href="#-tech-stack--tooling">
-    <img src="https://img.shields.io/badge/Pinia-4.0+-FFD859?style=for-the-badge&logo=pinia&logoColor=black" alt="Pinia" />
+    <img src="https://img.shields.io/badge/Gemini_API-Flash--Lite_&_2.5_Pro-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini API" />
   </a>
   <a href="#-tech-stack--tooling">
-    <img src="https://img.shields.io/badge/Laravel_11-Backend_Engine-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 11" />
-  </a>
-  <a href="#-ai-pipelines-deep-dive">
-    <img src="https://img.shields.io/badge/Gemini_API-Multimodal_Vision-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini API" />
-  </a>
-  <a href="#-infrastructure--deployment">
-    <img src="https://img.shields.io/badge/Railway-Cloud_Deployed-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Railway" />
+    <img src="https://img.shields.io/badge/Payments-Stripe_&_PayMongo-635BFF?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe & PayMongo" />
   </a>
 </p>
 
@@ -41,16 +38,16 @@
 ## 📑 Table of Contents
 
 1. [Architectural Concept & Dual-Surface Experience](#-architectural-concept--dual-surface-experience)
-2. [Surface 1: Outer Portfolio (Light Bento Grid)](#-surface-1-outer-portfolio-light-bento-grid)
-3. [Surface 2: Inner Project Workspace (Dark DevOps Surface)](#-surface-2-inner-project-workspace-dark-devops-surface)
-4. [Interactive Demos & Multi-Device Simulators](#-interactive-demos--multi-device-simulators)
-5. [Presentation Deck System (NotebookLM Style)](#-presentation-deck-system-notebooklm-style)
-6. [Autonomous Multimodal AI Pipelines](#-autonomous-multimodal-ai-pipelines)
-7. [Cloud Infrastructure & Deployment Topology](#-cloud-infrastructure--deployment-topology)
-8. [Codebase Architecture & Directory Structure](#-codebase-architecture--directory-structure)
-9. [Reactive State Management (Pinia)](#-reactive-state-management-pinia)
-10. [Local Development & Setup Guide](#-local-development--setup-guide)
-11. [Production Deployment](#-production-deployment)
+2. [Flagship Project 1: RLG Online Shop (E-Commerce Monorepo)](#-flagship-project-1-rlg-online-shop-e-commerce-monorepo)
+3. [Flagship Project 2: ProposalAI (Enterprise B2B AI Proposal Generator)](#-flagship-project-2-proposalai-enterprise-b2b-ai-proposal-generator)
+4. [Inner Project Workspace & Dynamic Theme Switching](#-inner-project-workspace--dynamic-theme-switching)
+5. [Interactive Demos & Live Canvas Studios](#-interactive-demos--live-canvas-studios)
+6. [Presentation Deck System (NotebookLM Style)](#-presentation-deck-system-notebooklm-style)
+7. [AI Pipelines Deep Dive (Vision OCR vs. pgvector RAG)](#-ai-pipelines-deep-dive-vision-ocr-vs-pgvector-rag)
+8. [Cloud Infrastructure & Deployment Topology (Railway & Vercel)](#-cloud-infrastructure--deployment-topology-railway--vercel)
+9. [Codebase Architecture & Directory Structure](#-codebase-architecture--directory-structure)
+10. [Reactive State Management (Pinia)](#-reactive-state-management-pinia)
+11. [Local Development & Setup Guide](#-local-development--setup-guide)
 12. [Developer Bio & Contact](#-developer-bio--contact)
 
 ---
@@ -65,186 +62,139 @@ This portfolio is built on a **Dual-Surface UI Paradigm** engineered to solve th
 │   • Modern Bento Grid (#f8fafc / #ffffff)                              │
 │   • Developer Bio & Availability                                       │
 │   • 6-Category Skills, Tooling & Infrastructure Matrix                 │
-│   • Featured Project Cards with Live Status Pills                      │
+│   • Two Flagship Projects: RLG Online Shop & ProposalAI                │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ Click "Explore Project Workspace"
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   INNER PROJECT WORKSPACE (Dark DevOps Dashboard)      │
-│   • Deep Slate Shell (#090d16 / #0f172a) with Glowing Glass Accents     │
-│   • Live Production Header: rlgonlineshop.com | Railway | Namecheap     │
-│   • 7-Tab Navigation: Overview | Deck | Demos | Infra | Tech | AI | Arch│
-│   • Multi-Device Simulators: Desktop (1440p), Tablet (768p), Mobile    │
-│   • NotebookLM Presentation Deck with Talk Track Notes Drawer          │
-│   • Interactive Admin Portal & Authentic 13-Section Storefront         │
+│                   INNER PROJECT WORKSPACE (Multi-Theme SaaS)           │
+│   • RLG Online Shop: Dark Cybernetic Shell (#090d16 / #0f172a)         │
+│   • ProposalAI: Light Enterprise B2B Theme (#f8fafc / #ffffff / Teal)  │
+│   • Seamless Project Switcher in Top Navigation Bar                    │
+│   • 7 Dedicated Modules: Overview | Deck | Demos | Tech | AI | Arch | Deploy
+│   • Working Live Simulators: 13-Section Storefront & Proposal Canvas   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ☀️ Surface 1: Outer Portfolio (Light Bento Grid)
+## 🛍️ Flagship Project 1: RLG Online Shop (E-Commerce Monorepo)
 
-The outer portfolio delivers an ultra-clean, minimalist Bento Grid design inspired by contemporary modern design systems:
-
-- **Aesthetic & Theme:** Crisp light palette (`#f8fafc` background, `#ffffff` card tiles, `border-slate-200/80` borders, and subtle indigo/violet hover glows).
-- **Hero Section:**
-  - Status beacon: `Available for Senior Architect roles & consulting`.
-  - Developer identity, high-impact headline (*"Bridging Enterprise Frontend Systems & Autonomous AI Pipelines"*), and quick action buttons.
-  - Floating metric badges highlighting **7+ Years Experience**, **99.98% Production Uptime**, and **Sub-100ms TTFB**.
-- **6-Category Technical Skills & Tooling Matrix:**
-  1. **Languages & Core:** PHP 8+, JavaScript (ESNext), TypeScript, HTML5 / Semantic Web, CSS3 & Tailwind CSS.
-  2. **Backend Frameworks & DB:** Laravel 11 (Service Layer, Form Requests, Queues), MySQL / Relational DB, Inertia.js, RESTful APIs.
-  3. **Frontend & Reactive State:** Vue 3 (Composition API, `<script setup>`), Pinia, Vite, Mobile-First PWA (Service Workers, Capacitor-ready).
-  4. **AI & Multimodal Engineering:** Gemini API (Vision OCR, set/condition parsing), Automated SEO Generation (JSON-LD schemas, meta tags), Conversational Storefront Chatbot, Prompt Architecture.
-  5. **Cloud & Infrastructure:** Railway Cloud Deployment, Namecheap DNS Routing (Apex A & CNAME records), Redis Caching & Queue Workers, Edge Security / Cloudflare.
-  6. **Tooling & Quality DevOps:** Google Antigravity (Autonomous pair programming), Google Jules (Asynchronous PR review), Playwright E2E automation, n8n webhook orchestration.
-- **Project Showcase Card:**
-  - Live status indicator: `Production 🟢 (rlgonlineshop.com)`.
-  - Tech pill badges, feature list, and one-click launch trigger to activate the **Inner Workspace**.
+- **Domain:** Production at [rlgonlineshop.com](https://rlgonlineshop.com)
+- **Tagline:** Full-Stack Monorepo Featuring Multimodal AI Automation
+- **Aesthetic:** Dark Cybernetic Shell (`#090d16` to `#0f172a`, purple & cyan glows).
+- **Core Stack:** Laravel 11, Vue 3, Inertia.js, MySQL, Redis, Gemini Vision OCR, Railway Cloud, Namecheap DNS.
+- **Key Capabilities:**
+  - **Multimodal AI Vision Intake:** Parses Japanese card serial numbers, expansion sets, and centering condition grades in < 1.5s directly from raw smartphone photos.
+  - **Automated SEO & Schema Generator:** Automatically generates search-optimized titles, deduplicated slugs, and `schema.org/Product` JSON-LD schemas.
+  - **13-Section Authentic Storefront:** Complete Japanese collectibles e-commerce site with live card grids, dynamic bundles, and floating *"Ask Aiko AI"* assistant.
+  - **Cloud Infrastructure:** Multi-container deployment on Railway with Nixpacks, Redis queue workers, and custom apex DNS routing via Namecheap.
 
 ---
 
-## 🌙 Surface 2: Inner Project Workspace (Dark DevOps Surface)
+## 💼 Flagship Project 2: ProposalAI (Enterprise B2B AI Proposal Generator)
 
-Clicking **"Explore RLG Online Shop"** launches a full-screen, responsive SaaS dashboard crafted with deep slate and purple/cyan cybernetic glows (`#090d16` to `#0f172a`):
-
-### Top Header Bar (`WorkspaceTopBar.vue`)
-- **Breadcrumb Trail:** Dynamic hierarchy tracking the current module (`RLG Online Shop > Interactive Demos > Admin Panel`).
-- **Global Search:** Quick filter input to search through project modules, slides, and products.
-- **Production Status Badges:**
-  - `Production: rlgonlineshop.com 🟢` (direct link out to production domain).
-  - `Railway Deployed` & `Namecheap DNS` host badges.
-  - `AI Services: Online 🟢` live heartbeat indicator.
-  - Quick action links for GitHub monorepo and single-click return to Outer Portfolio.
-
-### Left Navigation Sidebar (`WorkspaceSidebar.vue`)
-Responsive collapsible sidebar offering 7 dedicated architectural modules:
-1. **Overview & Metrics:** High-level executive briefing, monorepo statistics, and system KPIs.
-2. **Presentation Deck:** 8-slide presentation system featuring interviewer talk tracks.
-3. **Interactive Demos:** Toggle between the live **Admin Panel** and **Buyer Storefront** across Desktop, Tablet, and Mobile device frames.
-4. **Infrastructure & Deployment:** Full container specs, Nixpacks build pipelines, and Namecheap DNS configuration.
-5. **Tech Stack & Tooling:** Deep-dive inventory of languages, frameworks, linters, and libraries.
-6. **AI Pipelines Deep Dive:** Interactive workflow breakdown of Gemini Vision OCR, Auto SEO, and conversational agents.
-7. **Architecture & Code Quality:** Service layer design, repository patterns, database schema integrity, and automated testing suites.
+- **Domain:** Production-ready at [proposal-ai.vercel.app](https://proposal-ai.vercel.app)
+- **Tagline:** Production-grade multi-tenant B2B platform automating the drafting, financial modeling, and dispatch of high-conversion sales proposals using Gemini and Supabase pgvector.
+- **Aesthetic:** Light Enterprise B2B SaaS Theme (`#f8fafc` background, pure white cards `#ffffff`, subtle slate borders `#e2e8f0`, teal `#0d9488` and emerald `#10b981` accents).
+- **Core Stack:** Laravel 11 Clean Architecture, Vue 3.5, Inertia.js v3, PostgreSQL 17 on Supabase, `pgvector` (768-dim HNSW index), Gemini Flash-Lite 3.5 & 2.5 Pro, Stripe Cashier, PayMongo Gateway, Vercel Edge Cloud.
+- **Key Capabilities:**
+  - **Context-Aware RAG with pgvector:** Queries the top-3 historically won enterprise proposals matching client industry and deal size via sub-15ms cosine similarity search.
+  - **Sub-3.2s Generation Speed:** Fast streaming drafts using Gemini Flash-Lite with strict JSON schema response mode for executive summaries, milestone timelines, and deliverable catalogs.
+  - **Deterministic Financial Ledger (Pinia):** Decoupled from LLM generation—strict decimal math computes quantity multipliers, volume discount curves, 12% VAT, and grand totals with zero hallucination risk.
+  - **Self-Improving RAG Flywheel:** Sales reps click *"Mark as Won & Vectorize"* to chunk closed deals with `gemini-embedding-2` and index them into Supabase `won_pitches` table for future retrieval.
+  - **Multi-Tenant Quota Gating:** Free tier (3/5 proposals used) with interactive warning indicator, plus Stripe Cashier and PayMongo upgrade modals for Pro ($49/mo) and Enterprise ($199/mo) plans.
 
 ---
 
-## 📱 Interactive Demos & Multi-Device Simulators
+## 🎨 Inner Project Workspace & Dynamic Theme Switching
 
-The **Interactive Demos** module (`AdminPanelDemo.vue`, `BuyerStorefrontDemo.vue`, `DeviceSimulatorFrame.vue`) provides fully functional, simulated environments embedded inside responsive device frames:
+The Inner Workspace shell (`WorkspaceShell.vue`) dynamically adapts its layout and aesthetics depending on the active project selected via the top bar switcher:
 
-### Multi-Device Resolution Frame
-- **Desktop Simulator (1440 × 900):** Contained in a sleek browser chassis with URL bar, SSL lock indicator, and internal scroll container (`h-[750px] overflow-y-auto`) ensuring zero layout overflow.
-- **Tablet Simulator (768 × 1024):** iPad-style responsive tablet viewport testing mid-screen breakpoints.
-- **Mobile Simulator (375 × 812):** High-fidelity iPhone frame complete with realistic Dynamic Island, status bar, and home indicator.
-- **Zoom Controls:** Switch between `75%`, `100%`, and `125%` zoom scaling.
+| Feature | RLG Online Shop | ProposalAI |
+| :--- | :--- | :--- |
+| **Theme Aesthetic** | Dark Cybernetic (`#090d16` / `#0f172a`) | Light Enterprise B2B (`#f8fafc` / `#ffffff`) |
+| **Accent Colors** | Indigo (`#6366f1`) & Purple (`#a855f7`) | Deep Teal (`#0d9488`) & Emerald (`#10b981`) |
+| **Top Status Badges** | `Production: rlgonlineshop.com 🟢`, `Railway`, `Namecheap` | `Vercel Deploy 🟢`, `Supabase pgvector`, `Stripe & PayMongo` |
+| **AI Status Pill** | `AI Services: Online 🟢` | `AI Services Active 🟢` |
+| **Demos View** | Multi-Device DeviceSimulator (Admin vs. Buyer Storefront) | Live Proposal Studio & Document Canvas |
+| **Cloud Topology** | Railway Container Orchestration & Redis | Vercel Edge Serverless & Supabase Database |
 
-### A. Admin Panel Demo (`AdminPanelDemo.vue`)
-- **Multimodal AI Vision Intake Engine:**
-  - One-click image selection (e.g., Japanese Charizard VSTAR, One Piece Manga Shanks).
-  - Simulated **Gemini Vision OCR** parsing Japanese card series, card number, rarity, and centering condition grade in <1.5s.
-  - Live progress states: `Image Upload` ➔ `Vision Token Ingestion` ➔ `JSON Schema Extraction`.
-- **One-Click Automated SEO & Schema Generator:**
-  - Auto-generates long-tail search titles, search slugs, meta descriptions, and Google-ready `Product` + `Offer` JSON-LD schemas.
-- **Real-Time Inventory Operations:**
-  - Live metrics bar: Total Sales, Active SKUs, Ingestion Speed, AI throughput.
-  - Interactive product inventory table with markup toggles, stock adjustments, and status tags.
+---
 
-### B. Buyer Storefront Demo (`BuyerStorefrontDemo.vue`)
-Replicates the authentic, full-scale e-commerce storefront of `rlgonlineshop.com` with **13 complete sections**:
-1. **Top Announcement Ribbon:** Delivery perks, flash sale countdown, and live customer service notice.
-2. **Storefront Navbar:** Logo, search bar, currency switcher (₱ / $), Wishlist counter, Member profile badge, and reactive Cart pill with badge count.
-3. **Hero Banner:** *"Build, Collect & Battle. Your Premier Hobby Store."* with Japanese card fan preview, category chips, and dual CTA buttons.
-4. **Hobby Categories Grid:** 5 visual tiles (*TCG Cards, Gunpla Model Kits, Anime Scale Figures, Anime Merchandise, Toys & Plushies*).
-5. **Promotional Announcement:** *"Follow Us on FB: angaskie — Win Surprise Prizes!"*.
-6. **Best Selling Collectibles:** 5-column grid featuring authentic Japanese cards with Near Mint condition badges, star ratings, and instant cart triggers.
-7. **Curated Top Picks:** High-tier graded cards and rare expansion boosters.
-8. **Collector Welcome Coupon Banner:** 10%–20% Off promotional drop with coupon code `RLGCOLLECTOR`.
-9. **New Releases Grid:** Latest Japanese card set drops.
-10. **Gunpla & Scale Figures Showcase:** Master Grade / High Grade model kits and pre-painted PVC figures.
-11. **Hobby Guides & Articles:** Journal guides on card grading and Gunpla panel lining.
-12. **4 Trust Badges:** *100% Authentic Guaranteed*, *Safe Bubble-Wrapped Delivery*, *Fast Dispatch*, *Secure Checkout*.
-13. **Full Storefront Footer:** *Hobby Vault*, *Collector Care*, *VIP Club* newsletter subscription, and copyright notice.
-- **Interactive Slide-Over Cart Drawer (`CartDrawer.vue`):** Real-time subtotal, coupon application, quantity controls, and mock checkout.
-- **Conversational AI Assistant ("Ask Aiko AI" / `AiChatbotWidget.vue`):** Floating chatbot with pre-loaded prompt chips, live catalog recommendation context, and direct cart actions.
+## 💻 Interactive Demos & Live Canvas Studios
+
+### 1. ProposalAI Live Studio (`ProposalAiDemo.vue`)
+- **Column 1 (Live Proposal Builder & Canvas):**
+  - **Preset Selector:** Toggle between Acme Corp (Enterprise SaaS), FinTech Global (AI Compliance), and OmniRetail (Inventory Sync).
+  - **Client Intel & CRM Dossier:** Inputs for organization name, procurement email, and contact names.
+  - **Catalog Deliverables:** Interactive line items with quantity counters, unit cost in USD, line discount percentage, and instant removal/addition.
+  - **Pinia Real-Time Ledger:** Dynamic subtotal, volume discount curves, 12% standard enterprise VAT, and deterministic grand total.
+  - **Strategic Directives Field:** Textarea with live character counter (1000 char maximum).
+  - **Generation Trigger:** Button activating simulated Gemini streaming states.
+- **Column 2 (Document Live Canvas & Draft Preview):**
+  - **Shimmer Progress State:** Visual indicator displaying live Supabase pgvector retrieval and Gemini Flash-Lite drafting.
+  - **Executive Summary:** Context-tailored narrative addressing client pain points and projected 6-month ROI.
+  - **Milestone Timeline:** Visual node stepper diagram connecting Sprint 0 (Architecture Review) ➔ Phase 1 (Core Migration) ➔ Phase 2 (RAG Vectorization) ➔ Phase 3 (SLA Handover).
+  - **Dynamic Pricing Table:** Formatted tabular ledger with item numbering, cost breakdown, and final totals.
+  - **Mark as Won & Vectorize Button:** Triggers animated toast confirmation showing chunk embedding via `gemini-embedding-2` and Supabase pgvector table indexing.
+- **Quota Warning & Upgrade Modal:** Real-time 3/5 quota usage bar with Stripe and PayMongo payment tabs.
+
+### 2. RLG Online Shop Simulators (`AdminPanelDemo.vue` & `BuyerStorefrontDemo.vue`)
+- **Device Resolution Frame:** Test across Desktop (1440 × 900), Tablet (768 × 1024), and Mobile Phone (375 × 812 with Dynamic Island).
+- **Admin Panel Intake:** Optical image intake with simulated Gemini Vision OCR extracting Japanese card title, expansion set, card serial, and centering grade.
+- **Storefront E-Commerce:** Full 13-section Japanese trading card storefront with slide-over Pinia cart drawer and floating *"Ask Aiko AI"* conversational assistant.
 
 ---
 
 ## 📊 Presentation Deck System (NotebookLM Style)
 
-The **SlideDeckViewer** (`SlideDeckViewer.vue`) replicates a modern Google NotebookLM / Keynote presentation experience:
+The **SlideDeckViewer** (`SlideDeckViewer.vue`) dynamically loads 8 tailored technical slides for whichever project is currently active:
 
-- **8 Technical Architectural Slides:**
-  1. *Executive Overview & Product Architecture*
-  2. *Dual-Surface Architecture (Admin Engine vs. Buyer Storefront)*
-  3. *Multimodal AI Vision Intake Engine (Gemini API)*
-  4. *Autonomous SEO Engine & JSON-LD Schemas*
-  5. *Conversational Storefront AI Assistant*
-  6. *Cloud Infrastructure on Railway & Namecheap DNS*
-  7. *Development Workflow with Google Antigravity & Jules*
-  8. *Key Metrics, Business Impact & Technical Takeaways*
-- **Interactive Controls:** Previous (`<`) / Next (`>`) arrows, keyboard navigation, slide counter (`Slide X of 8`), and dot indicators.
-- **Collapsible "Talk Tracks & Highlight Notes" Drawer:**
-  - Provides the exact verbal talk tracks and interview presentation points for each slide.
-  - Designed for technical architectural walkthroughs, client pitches, and stakeholder reviews.
+### ProposalAI 8-Slide Deck:
+1. *Executive Overview & Problem Statement* (14h manual RFP reduction to < 3.2s)
+2. *Asynchronous Queue Architecture & Sequence Flow* (Zero-timeout background jobs)
+3. *Retrieval-Augmented Generation (RAG) with Supabase pgvector* (768-dim HNSW cosine distance)
+4. *Real-time Reactive Financial Ledger (Pinia)* (Deterministic math separated from LLM generation)
+5. *Multi-Tenant Quotas & Stripe / PayMongo Freemium Gating* (Middleware quota enforcement)
+6. *Self-Improving RAG Flywheel (Won Proposals Indexing)* (Continuous closed-deal feedback loop)
+7. *Clean Architecture in Laravel 11 & Form Requests* (Domain services and strict schema validation)
+8. *Automated Testing Strategy (Pest & Vitest)* (15 tests / 70 assertions verifying financial ledger math)
 
 ---
 
-## 🤖 Autonomous Multimodal AI Pipelines
-
-The portfolio showcases three enterprise-grade AI integration pipelines (`AiPipelinesView.vue`):
+## 🤖 AI Pipelines Deep Dive (Vision OCR vs. pgvector RAG)
 
 ```mermaid
-flowchart LR
-    A["📸 Card / Item Photo"] --> B["⚡ Gemini Vision API"]
-    B --> C["📋 JSON Schema Output"]
-    C --> D["🏷️ Card Name, Number, Rarity"]
-    C --> E["🎯 Condition Grade (NM/LP/MP)"]
-    
-    D --> F["🚀 Auto SEO Generator"]
-    F --> G["🔍 Meta Title & Description"]
-    F --> H["📦 JSON-LD Product Schema"]
-    
-    C --> I["💬 Conversational Chatbot"]
-    I --> J["🛍️ Live Storefront Assistant"]
-```
+flowchart TD
+    subgraph RLG["RLG Online Shop: Multimodal Vision Pipeline"]
+        A1["📸 Raw Smartphone Photo"] --> B1["⚡ Gemini Vision OCR"]
+        B1 --> C1["📋 JSON Schema: Kanji, Serial, Grade"]
+        C1 --> D1["🔍 Auto SEO & JSON-LD Snippets"]
+    end
 
-1. **Multimodal Vision OCR Engine:**
-   - **Model:** Gemini 2.5 Multimodal API.
-   - **Function:** Ingests raw camera captures of Japanese trading cards, analyzes Japanese character kanji, set numbers, and rarity stamps, and outputs structured, validated JSON directly into the database draft.
-2. **Automated SEO & Schema Generation:**
-   - **Function:** Programmatically converts ingested product attributes into high-intent long-tail titles, URL slugs, meta descriptions, and search-indexed `Product` and `Offer` schema microdata.
-3. **Conversational E-Commerce Assistant ("Aiko AI"):**
-   - **Function:** Context-aware shopping assistant running in a floating drawer, equipped with live catalog knowledge to recommend items, check card conditions, and suggest mystery bundles.
+    subgraph ProposalAI["ProposalAI: Enterprise B2B RAG Pipeline"]
+        A2["🏢 Client Dossier & Directives"] --> B2["🔍 Supabase pgvector (768-dim HNSW)"]
+        B2 --> C2["📑 Top-3 Historical Won Deals"]
+        C2 & A2 --> D2["⚡ Gemini Flash-Lite Structured Drafting"]
+        D2 --> E2["📄 Document Live Canvas Preview"]
+        E2 --> F2["🏆 Mark as Won & Vectorize (gemini-embedding-2)"]
+        F2 -.-> B2
+    end
+```
 
 ---
 
 ## ☁️ Cloud Infrastructure & Deployment Topology
 
-Detailed in `DeploymentView.vue`, the production deployment for `rlgonlineshop.com` utilizes a resilient, modern cloud topology:
+### 1. ProposalAI Infrastructure (Vercel + Supabase)
+- **Frontend & Edge Functions:** Hosted on **Vercel Edge Cloud** with instant preview environments on PR creation, sub-12ms edge middleware, and continuous zero-downtime deployments.
+- **Database & Vector Storage:** **PostgreSQL 17 on Supabase** with the `pgvector` extension, optimized 768-dimensional HNSW index, and strict Row Level Security (RLS) tenant isolation.
+- **Payment Gateways:** **Stripe Cashier** for global credit cards and **PayMongo** for Southeast Asian local payment rails (GCash, Maya, cards) with idempotent webhook consumers.
 
-```
-┌────────────────────────────────────────────────────────┐
-│                   Namecheap DNS                        │
-│   • Apex Domain A-Record: 35.xxx.xxx.xxx               │
-│   • CNAME Record: www.rlgonlineshop.com                │
-└───────────────────────────┬────────────────────────────┘
-                            │ HTTPS / TLS Termination
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│                   Railway Cloud                        │
-│   • Nixpacks Container Build Pipeline                  │
-│   • Zero-Downtime Continuous Git Deployments           │
-│   • Multi-Service Cluster:                             │
-│     ├── Laravel 11 Web & API Service                   │
-│     ├── MySQL 8.0 Managed Database                     │
-│     └── Redis In-Memory Cache & Queue Workers          │
-└────────────────────────────────────────────────────────┘
-```
-
-- **Domain & DNS Management:** Managed via Namecheap DNS, routing traffic to Railway's global edge network with automated SSL/TLS provisioning.
-- **Containerization & CI/CD:** Built using Railway Nixpacks containers; every commit pushed to the monorepo triggers automatic builds, test validation, and zero-downtime rollouts.
-- **Asynchronous Processing:** Redis-backed queue workers process intensive background tasks (image optimization, AI vision intake calls, and webhook dispatches).
+### 2. RLG Online Shop Infrastructure (Railway + Namecheap)
+- **Container Runtime:** Multi-container cluster on **Railway** utilizing Nixpacks container builds for Laravel 11 (PHP 8.3-FPM + Nginx), MySQL 8.0 volume, and Redis queue workers.
+- **DNS Routing:** Apex domain A-record and wildcard CNAME routing configured via **Namecheap DNS** for `rlgonlineshop.com` with automated Let's Encrypt SSL/TLS.
 
 ---
 
@@ -257,58 +207,50 @@ rlg-portfolio/
     ├── package.json                    # Dependencies & Scripts
     ├── vite.config.js                  # Vite Build Configuration
     ├── tailwind.config.js              # Tailwind Design System Configuration
-    ├── postcss.config.js               # PostCSS Autoprefixer Configuration
-    ├── index.html                      # HTML Entrypoint
-    └── src/
+    ├── src/
         ├── App.vue                     # Root Application Component
         ├── main.js                     # Application Entrypoint (Vue + Pinia)
-        ├── style.css                   # Global Tailwind Styles & Custom Animations
-        ├── assets/                     # Static Graphics & SVGs
-        │   ├── hero.png                # Hero Banner
-        │   ├── vue.svg                 # Vue Logo
-        │   └── vite.svg                # Vite Logo
-        ├── components/
-        │   ├── portfolio/              # Surface 1: Outer Portfolio Components
-        │   │   ├── PortfolioNavbar.vue     # Top Navigation Bar & Brand
-        │   │   ├── HeroSection.vue         # Hero Banner, Metrics & CTAs
-        │   │   ├── BentoGrid.vue           # Modern Bento Grid Layout
-        │   │   ├── SkillsMatrix.vue        # 6-Category Technical Matrix
-        │   │   ├── ProjectShowcaseCard.vue # Interactive Project Cards
-        │   │   └── PortfolioFooter.vue     # Footer with Social Links
-        │   └── workspace/              # Surface 2: Inner Project Workspace
-        │       ├── WorkspaceShell.vue      # Full-Screen Dashboard Layout
-        │       ├── WorkspaceTopBar.vue     # Header Bar with Badges & Search
-        │       ├── WorkspaceSidebar.vue    # 7-Tab Navigation Sidebar
-        │       ├── SlideDeckViewer.vue     # NotebookLM Slide Deck & Talk Tracks
-        │       ├── DeploymentView.vue      # Railway & Namecheap Cloud Specs
-        │       ├── TechStackView.vue       # In-Depth Tooling Breakdown
-        │       ├── AiPipelinesView.vue     # Multimodal AI Workflow Diagram
-        │       ├── ArchitectureView.vue    # Monorepo & Code Quality Architecture
-        │       └── demos/                  # Interactive Simulators
-        │           ├── DeviceSimulatorFrame.vue # Responsive Device Frame (Desktop/Tablet/Mobile)
-        │           ├── AdminPanelDemo.vue       # Simulated Merchant Intake & SEO Suite
-        │           ├── BuyerStorefrontDemo.vue  # Authentic 13-Section Japanese TCG Storefront
-        │           ├── CartDrawer.vue           # Reactive Shopping Cart Slide-Over
-        │           └── AiChatbotWidget.vue      # Floating "Ask Aiko AI" Assistant
+        ├── style.css                   # Global Styles & Animations
         ├── data/
         │   └── projectsData.js         # Centralized Data Matrix (Bio, Skills, Slides, SKUs)
-        └── stores/
-            ├── portfolioStore.js       # Core UI Navigation, Tab & Device State
-            ├── cartStore.js            # Reactive E-Commerce Cart & Total Calculations
-            └── inventoryStore.js       # Product Catalog, Stock Levels & AI Ingestion State
+        ├── stores/
+        │   ├── portfolioStore.js       # Active Project, Mode, Device & Tab State
+        │   ├── cartStore.js            # Reactive Shopping Cart
+        │   └── inventoryStore.js       # Product Catalog & AI Ingestion State
+        └── components/
+            ├── portfolio/              # Surface 1: Outer Portfolio Components
+            │   ├── PortfolioNavbar.vue     # Navbar with Quick Project Links
+            │   ├── HeroSection.vue         # Developer Bio & Availability Beacon
+            │   ├── BentoGrid.vue           # Modern Bento Grid Layout
+            │   ├── ProjectShowcaseCard.vue # Flagship 1: RLG Online Shop Card
+            │   ├── ProposalAiCard.vue      # Flagship 2: ProposalAI Enterprise Card
+            │   ├── SkillsMatrix.vue        # 6-Category Technical Matrix
+            │   └── PortfolioFooter.vue     # Footer with Social Links
+            └── workspace/              # Surface 2: Inner Project Workspace
+                ├── WorkspaceShell.vue      # Dynamic Theme Switcher Shell
+                ├── WorkspaceTopBar.vue     # Top Bar with Project Switcher & Badges
+                ├── WorkspaceSidebar.vue    # Project-Aware Navigation Sidebar
+                ├── SlideDeckViewer.vue     # NotebookLM Slide Deck & Talk Tracks
+                ├── DeploymentView.vue      # Railway vs. Vercel Cloud Specs
+                ├── TechStackView.vue       # In-Depth Tooling Breakdown
+                ├── AiPipelinesView.vue     # Vision OCR vs. pgvector RAG
+                ├── ArchitectureView.vue    # Monorepo & Clean Architecture
+                └── demos/                  # Interactive Simulators
+                    ├── ProposalAiDemo.vue       # Live Proposal Studio & Financial Ledger
+                    ├── DeviceSimulatorFrame.vue # Responsive Device Frame (Desktop/Tablet/Mobile)
+                    ├── AdminPanelDemo.vue       # TCG Merchant Intake & SEO Engine
+                    ├── BuyerStorefrontDemo.vue  # Authentic 13-Section Japanese TCG Storefront
+                    ├── CartDrawer.vue           # Reactive Shopping Cart Drawer
+                    └── AiChatbotWidget.vue      # Floating "Ask Aiko AI" Assistant
 ```
 
 ---
 
 ## ⚡ Reactive State Management (Pinia)
 
-The application utilizes three modular Pinia stores to guarantee clean separation of concerns:
-
-| Store | Location | Primary Responsibilities |
-| :--- | :--- | :--- |
-| **`usePortfolioStore`** | `src/stores/portfolioStore.js` | Manages surface modes (`outer` vs. `workspace`), active workspace tab, device simulator resolution (`desktop`, `tablet`, `mobile`), zoom scaling, slide index, talk tracks visibility, search queries, and currency (`PHP` vs. `USD`). |
-| **`useCartStore`** | `src/stores/cartStore.js` | Handles shopping cart state, item additions/removals, quantity adjustments, discount calculations, tax/shipping totals, and drawer toggling. |
-| **`useInventoryStore`** | `src/stores/inventoryStore.js` | Manages mock catalog items, simulated Gemini Vision OCR intake execution, AI-generated SEO drafts, category filters, and inventory counts. |
+- **`usePortfolioStore`:** Controls surface modes (`outer` vs. `workspace`), active project (`rlg-online-shop` vs. `proposal-ai`), active workspace tab, device simulator resolution (`desktop`, `tablet`, `mobile`), slide deck index, and currency switcher (`PHP` vs. `USD`).
+- **`useCartStore`:** Manages reactive e-commerce cart, line items, coupon codes, and shipping calculations.
+- **`useInventoryStore`:** Handles mock product listings, camera upload simulation, and Gemini Vision state.
 
 ---
 
@@ -326,55 +268,36 @@ The application utilizes three modular Pinia stores to guarantee clean separatio
    cd rlg-shop-monorepo
    ```
 
-2. **Navigate to the Frontend Directory:**
+2. **Navigate to Frontend & Install Dependencies:**
    ```bash
    cd frontend
-   ```
-
-3. **Install Dependencies:**
-   ```bash
    npm install
    ```
 
-4. **Start the Vite Development Server:**
+3. **Start Development Server:**
    ```bash
    npm run dev
    ```
-   The application will start locally at **`http://localhost:5173/`** with instant Hot Module Replacement (HMR).
+   Access the portfolio locally at **`http://localhost:5173/`**.
 
----
-
-## 📦 Production Deployment
-
-To generate an optimized production bundle:
-
-```bash
-npm run build
-```
-
-The compiled assets will be output to the `frontend/dist/` directory, optimized with code-splitting, CSS minification, and tree-shaking:
-- `dist/index.html`
-- `dist/assets/*.css`
-- `dist/assets/*.js`
-
-To preview the production build locally:
-```bash
-npm run preview
-```
+4. **Production Build:**
+   ```bash
+   npm run build
+   ```
 
 ---
 
 ## 👨‍💻 Developer Bio & Contact
 
 - **Role:** Senior Frontend Engineer & Creative UI Architect
-- **Specialization:** Vue 3 (Composition API), Enterprise Laravel Monorepos, High-Performance UI Systems, Autonomous Multimodal AI (Gemini Vision OCR).
+- **Specialization:** Vue 3 (Composition API), Enterprise Laravel Monorepos, Clean Architecture, Supabase pgvector RAG, Autonomous Multimodal AI (Gemini Vision OCR & Flash-Lite).
 - **Production Storefront:** [https://rlgonlineshop.com](https://rlgonlineshop.com)
+- **ProposalAI Deployment:** [https://proposal-ai.vercel.app](https://proposal-ai.vercel.app)
 - **Location:** Manila / Remote Worldwide
 - **Status:** Available for Senior UI Architect roles, technical consulting, and enterprise front-end engagements.
 
 ---
 
 <p align="center">
-  <sub>Engineered with precision using Vue 3, Vite, Tailwind CSS, Pinia, and Google Antigravity. © 2026 RLG. All rights reserved.</sub>
+  <sub>Engineered with precision using Vue 3, Vite, Tailwind CSS, Pinia, Supabase, and Google Antigravity. © 2026 RLG. All rights reserved.</sub>
 </p>
-
