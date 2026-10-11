@@ -1,122 +1,130 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { getProjectById, projects, rlgProjectData, proposalAiProjectData } from '../data/projectsData'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import {
+  getProjectById,
+  projects,
+  rlgProjectData,
+  proposalAiProjectData,
+} from "../data/projectsData";
 
-export const usePortfolioStore = defineStore('portfolio', () => {
+export const usePortfolioStore = defineStore("portfolio", () => {
   // View mode: 'outer' (Light Bento) or 'workspace' (DevOps Dashboard)
-  const currentMode = ref('outer')
-  
+  const currentMode = ref("outer");
+
   // Active Project ID: 'rlg-online-shop' | 'proposal-ai'
-  const activeProjectId = ref('rlg-online-shop')
-  
+  const activeProjectId = ref("rlg-online-shop");
+
   // Active Project Computed Object
   const activeProject = computed(() => {
-    return getProjectById(activeProjectId.value)
-  })
+    return getProjectById(activeProjectId.value);
+  });
 
   // Workspace Tab Navigation:
   // 'overview' | 'slides' | 'demos' | 'infra' | 'tech' | 'ai' | 'architecture'
-  const activeWorkspaceTab = ref('overview')
-  
+  const activeWorkspaceTab = ref("overview");
+
   // Interactive Demo Toggle for RLG: 'admin' | 'storefront'
-  const activeDemoMode = ref('admin')
+  const activeDemoMode = ref("admin");
 
   // Screen Resolution / Device Frame Mode: 'desktop' | 'tablet' | 'mobile'
-  const activeDevice = ref('desktop')
-  const deviceZoom = ref(100)
-  
+  const activeDevice = ref("desktop");
+  const deviceZoom = ref(100);
+
   // Presentation Deck state
-  const currentSlideIndex = ref(0)
-  const isTalkTracksOpen = ref(true)
-  
+  const currentSlideIndex = ref(0);
+  const isTalkTracksOpen = ref(true);
+
   // Global search query
-  const searchQuery = ref('')
-  
+  const searchQuery = ref("");
+
   // AI status & connection state
-  const aiStatus = ref('Online')
-  const isAiStreaming = ref(false)
+  const aiStatus = ref("Online");
+  const isAiStreaming = ref(false);
 
   // Currency switcher state for demo views
-  const currency = ref('PHP') // 'PHP' | 'USD'
+  const currency = ref("PHP"); // 'PHP' | 'USD'
 
   // Workspace mobile sidebar drawer state
-  const isWorkspaceSidebarOpen = ref(false)
+  const isWorkspaceSidebarOpen = ref(false);
 
   // Actions
-  function openProject(projectId = 'rlg-online-shop', initialTab = 'overview') {
-    activeProjectId.value = projectId
-    activeWorkspaceTab.value = initialTab
-    currentSlideIndex.value = 0
-    currentMode.value = 'workspace'
-    isWorkspaceSidebarOpen.value = false
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  function openProject(projectId = "rlg-online-shop", initialTab = "overview") {
+    activeProjectId.value = projectId;
+    activeWorkspaceTab.value = initialTab;
+    currentSlideIndex.value = 0;
+    currentMode.value = "workspace";
+    isWorkspaceSidebarOpen.value = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function switchProject(projectId) {
     if (activeProjectId.value !== projectId) {
-      activeProjectId.value = projectId
-      currentSlideIndex.value = 0
+      activeProjectId.value = projectId;
+      currentSlideIndex.value = 0;
     }
   }
 
-  function openWorkspace(projectId = 'rlg-online-shop', initialTab = 'overview') {
-    openProject(projectId, initialTab)
+  function openWorkspace(
+    projectId = "rlg-online-shop",
+    initialTab = "overview",
+  ) {
+    openProject(projectId, initialTab);
   }
 
   function closeWorkspace() {
-    currentMode.value = 'outer'
-    isWorkspaceSidebarOpen.value = false
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    currentMode.value = "outer";
+    isWorkspaceSidebarOpen.value = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function toggleWorkspaceSidebar() {
-    isWorkspaceSidebarOpen.value = !isWorkspaceSidebarOpen.value
+    isWorkspaceSidebarOpen.value = !isWorkspaceSidebarOpen.value;
   }
 
   function closeWorkspaceSidebar() {
-    isWorkspaceSidebarOpen.value = false
+    isWorkspaceSidebarOpen.value = false;
   }
 
   function setWorkspaceTab(tab) {
-    activeWorkspaceTab.value = tab
-    isWorkspaceSidebarOpen.value = false
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    activeWorkspaceTab.value = tab;
+    isWorkspaceSidebarOpen.value = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function setDemoMode(mode) {
-    activeDemoMode.value = mode
+    activeDemoMode.value = mode;
   }
 
   function setDevice(device) {
-    activeDevice.value = device
+    activeDevice.value = device;
   }
 
   function toggleCurrency() {
-    currency.value = currency.value === 'PHP' ? 'USD' : 'PHP'
+    currency.value = currency.value === "PHP" ? "USD" : "PHP";
   }
 
   function nextSlide(totalSlides = 8) {
     if (currentSlideIndex.value < totalSlides - 1) {
-      currentSlideIndex.value++
+      currentSlideIndex.value++;
     } else {
-      currentSlideIndex.value = 0
+      currentSlideIndex.value = 0;
     }
   }
 
   function prevSlide(totalSlides = 8) {
     if (currentSlideIndex.value > 0) {
-      currentSlideIndex.value--
+      currentSlideIndex.value--;
     } else {
-      currentSlideIndex.value = totalSlides - 1
+      currentSlideIndex.value = totalSlides - 1;
     }
   }
 
   function goToSlide(index) {
-    currentSlideIndex.value = index
+    currentSlideIndex.value = index;
   }
 
   function toggleTalkTracks() {
-    isTalkTracksOpen.value = !isTalkTracksOpen.value
+    isTalkTracksOpen.value = !isTalkTracksOpen.value;
   }
 
   return {
@@ -147,6 +155,6 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     nextSlide,
     prevSlide,
     goToSlide,
-    toggleTalkTracks
-  }
-})
+    toggleTalkTracks,
+  };
+});
