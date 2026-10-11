@@ -24,8 +24,8 @@ const portfolioStore = usePortfolioStore()
     <!-- Top Bar with status & external badges -->
     <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 text-white flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm shadow-sm">
-          R
+        <div class="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-md border border-white/20 shrink-0">
+          <img src="/rlg-logo.png" alt="RLG Online Shop Logo" class="w-full h-full object-contain" />
         </div>
         <div>
           <span class="text-xs uppercase tracking-widest text-indigo-300 font-semibold">Flagship Project</span>
@@ -186,7 +186,10 @@ const portfolioStore = usePortfolioStore()
               <!-- Mock Title -->
               <div class="text-left">
                 <span class="text-[11px] text-indigo-400 font-mono">WORKSPACE SHELL</span>
-                <div class="text-white font-bold text-sm">RLG Online Shop Dashboard</div>
+                <div class="text-white font-bold text-sm flex items-center gap-2">
+                  <img src="/rlg-logo.png" alt="RLG" class="w-4 h-4 object-contain bg-white rounded p-0.5" />
+                  <span>RLG Online Shop Dashboard</span>
+                </div>
                 <div class="text-[11px] text-slate-400">Full-stack monorepo featuring multimodal AI</div>
               </div>
 

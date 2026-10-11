@@ -636,7 +636,7 @@ function switchSection(sec) {
         <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
           <div class="flex items-center gap-2.5">
             <div class="w-9 h-9 rounded-xl bg-white p-1 flex items-center justify-center shadow-md">
-              <img src="/logo.png" alt="RLG" class="w-full h-full object-contain" />
+              <img src="/rlg-logo.png" alt="RLG" class="w-full h-full object-contain" />
             </div>
             <div>
               <h1 class="text-xs font-black tracking-wider uppercase leading-none">
@@ -654,8 +654,8 @@ function switchSection(sec) {
 
         <!-- Admin Chief Profile Card from Screenshot 3 -->
         <div class="p-3 rounded-2xl bg-[#0f172a] border border-slate-800 flex items-center gap-2.5 shadow-sm">
-          <div class="w-9 h-9 rounded-full bg-purple-600 text-white font-black flex items-center justify-center text-sm shadow-md">
-            A
+          <div class="w-9 h-9 rounded-full overflow-hidden border border-purple-500/40 shadow-md shrink-0">
+            <img src="/profile.jpg" alt="Admin Chief" class="w-full h-full object-cover" />
           </div>
           <div class="truncate text-left flex-1 min-w-0">
             <span class="text-xs font-black text-white block truncate">Admin Chief</span>

@@ -183,7 +183,7 @@ const currentSlide = computed(() => {
           <div class="flex items-center gap-3 p-3 rounded-xl bg-[#131b2e]/60 border border-indigo-500/20 mb-4">
             <div class="w-9 h-9 rounded-full overflow-hidden border border-indigo-400/40 shrink-0">
               <img 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" 
+                src="/profile.jpg" 
                 alt="Presenter"
                 class="w-full h-full object-cover" 
               />

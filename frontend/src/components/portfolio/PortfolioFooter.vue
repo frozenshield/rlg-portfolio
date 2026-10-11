@@ -9,8 +9,8 @@ const portfolioStore = usePortfolioStore()
   <footer class="mt-20 border-t border-slate-200/80 bg-white/60 backdrop-blur-xs py-12 text-slate-500 text-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-          R
+        <div class="relative">
+          <img src="/profile.jpg" alt="Profile" class="w-8 h-8 rounded-lg object-cover border border-slate-200/90 shadow-xs" />
         </div>
         <div>
           <span class="font-bold text-slate-900 text-sm">RLG Portfolio</span>

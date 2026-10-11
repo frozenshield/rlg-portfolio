@@ -292,8 +292,11 @@ const activeMetricCards = computed(() => {
           <template v-else>
             <!-- Workspace Hero Title matching Reference Screenshot -->
             <div class="space-y-1">
-              <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
-                RLG Online Shop Dashboard
+              <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0 border border-white/20">
+                  <img src="/rlg-logo.png" alt="RLG Online Shop Logo" class="w-full h-full object-contain" />
+                </div>
+                <span>RLG Online Shop Dashboard</span>
               </h1>
               <p class="text-sm text-slate-400 font-normal">
                 Full-stack monorepo featuring multimodal AI automation

@@ -615,7 +615,7 @@ function selectCategoryDesktop(catId) {
       <div class="flex items-center gap-2">
         <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0">
           <img 
-            src="/logo.png" 
+            src="/rlg-logo.png" 
             alt="RLG Online Shop" 
             class="max-w-full max-h-full object-contain"
           />
@@ -1364,7 +1364,7 @@ function selectCategoryDesktop(catId) {
     <footer class="pt-6 pb-4 border-t border-slate-800/80 space-y-4">
       <div class="flex items-center gap-2">
         <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0">
-          <img src="/logo.png" alt="RLG Online Shop" class="max-w-full max-h-full object-contain" />
+          <img src="/rlg-logo.png" alt="RLG Online Shop" class="max-w-full max-h-full object-contain" />
         </div>
         <div class="font-black text-white text-base leading-tight">
           RLG <span class="text-rose-500">ONLINE SHOP</span>
@@ -1420,7 +1420,7 @@ function selectCategoryDesktop(catId) {
           <!-- Left: Official Logo -->
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shrink-0">
-              <img src="/logo.png" alt="RLG" class="max-w-full max-h-full object-contain" />
+              <img src="/rlg-logo.png" alt="RLG" class="max-w-full max-h-full object-contain" />
             </div>
             <div>
               <div class="text-sm font-black text-white leading-tight">
@@ -1511,8 +1511,8 @@ function selectCategoryDesktop(catId) {
 
             <!-- Member Profile Pill -->
             <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#131b2e] border border-slate-700/80 text-xs">
-              <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
-                R
+              <div class="w-6 h-6 rounded-full overflow-hidden border border-indigo-400/50 shrink-0">
+                <img src="/profile.jpg" alt="Russel Luis" class="w-full h-full object-cover" />
               </div>
               <div class="leading-none text-left">
                 <span class="font-bold text-white block text-[11px]">Russel Luis...</span>
@@ -2331,7 +2331,7 @@ function selectCategoryDesktop(catId) {
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center">
-                    <img src="/logo.png" alt="RLG" class="w-full h-full object-contain" />
+                    <img src="/rlg-logo.png" alt="RLG" class="w-full h-full object-contain" />
                   </div>
                   <span class="font-black text-white text-sm">RLG <span class="text-amber-400">ONLINE SHOP</span></span>
                 </div>

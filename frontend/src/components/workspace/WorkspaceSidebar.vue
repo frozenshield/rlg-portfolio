@@ -75,19 +75,15 @@ const currentNavItems = computed(() => {
 
         <!-- RLG Shop Branding -->
         <div v-else class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 p-[1px] shadow-lg shadow-indigo-500/20">
-            <div class="w-full h-full bg-[#090d16] rounded-xl flex items-center justify-center">
-              <span class="font-extrabold text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-                R
-              </span>
-            </div>
+          <div class="w-10 h-10 rounded-xl bg-white p-1 shadow-lg shadow-indigo-500/10 flex items-center justify-center shrink-0 border border-slate-700/50">
+            <img src="/rlg-logo.png" alt="RLG Online Shop Logo" class="w-full h-full object-contain" />
           </div>
           <div>
             <h2 class="text-base font-extrabold text-white tracking-wider flex items-center gap-1.5 leading-none">
               RLG SHOP
             </h2>
             <span class="text-[10px] uppercase font-mono tracking-widest text-slate-400 block mt-1">
-              PORTFOLIO
+              ONLINE SHOP
             </span>
           </div>
         </div>

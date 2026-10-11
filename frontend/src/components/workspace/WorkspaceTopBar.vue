@@ -69,6 +69,7 @@ const tabDisplayNames = {
               : 'text-slate-400 hover:text-white'
           ]"
         >
+          <img src="/rlg-logo.png" alt="RLG" class="w-3.5 h-3.5 object-contain bg-white rounded p-[1px]" />
           <span>RLG Shop</span>
         </button>
 
@@ -160,7 +161,7 @@ const tabDisplayNames = {
       <div class="flex items-center gap-2 pl-2 border-l border-slate-700/60">
         <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-600 to-indigo-600 border border-teal-400/40 flex items-center justify-center text-white text-xs font-bold overflow-hidden shadow-sm">
           <img 
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" 
+            src="/profile.jpg" 
             alt="Lead Architect" 
             class="w-full h-full object-cover"
           />

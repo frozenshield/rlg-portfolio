@@ -25,6 +25,21 @@ const portfolioStore = usePortfolioStore()
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col items-center text-center max-w-4xl mx-auto">
         
+        <!-- Developer Profile Picture -->
+        <div class="relative mb-5 group">
+          <div class="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-teal-400 rounded-full blur-md opacity-30 group-hover:opacity-50 transition duration-300"></div>
+          <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-white shadow-xl ring-2 ring-indigo-500/20">
+            <img 
+              src="/profile.jpg" 
+              alt="Lead Architect Profile" 
+              class="w-full h-full object-cover rounded-full"
+            />
+          </div>
+          <span class="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white shadow-xs flex items-center justify-center">
+            <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+          </span>
+        </div>
+
         <!-- Availability status badge -->
         <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-semibold tracking-wide shadow-xs mb-6 hover:bg-emerald-100/70 transition-colors">
           <span class="relative flex h-2 w-2">

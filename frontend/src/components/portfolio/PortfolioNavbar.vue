@@ -19,12 +19,17 @@ function scrollTo(id) {
     <div
       class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
     >
-      <!-- Brand Logo -->
+      <!-- Brand Logo: Developer Profile Picture -->
       <div class="flex items-center gap-3">
-        <div
-          class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/20"
-        >
-          <span class="text-xl tracking-tighter">R</span>
+        <div class="relative">
+          <img
+            src="/profile.jpg"
+            alt="RLG Architect Profile"
+            class="w-10 h-10 rounded-xl object-cover border border-slate-200/90 shadow-md ring-1 ring-slate-100"
+          />
+          <span
+            class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs"
+          ></span>
         </div>
         <div>
           <span
