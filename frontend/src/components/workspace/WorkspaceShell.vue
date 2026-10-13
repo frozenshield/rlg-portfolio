@@ -29,6 +29,7 @@ import {
   Scan,
   Compass,
   Monitor,
+  Tablet,
   Zap,
   BarChart3,
   TrendingUp,
@@ -267,24 +268,41 @@ const activeMetricCards = computed(() => {
               </button>
             </div>
 
-            <!-- Quick Launch Live Studio Banner -->
-            <div class="p-6 rounded-2xl bg-gradient-to-r from-teal-900 via-teal-950 to-slate-900 border border-teal-500/30 flex flex-col md:flex-row items-center justify-between gap-4 text-white shadow-lg">
+            <!-- Quick Launch Live Studio Banner with Device Presets -->
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 border border-purple-500/30 flex flex-col md:flex-row items-center justify-between gap-4 text-white shadow-lg">
               <div class="space-y-1">
-                <span class="text-xs font-mono uppercase tracking-widest text-teal-400 font-semibold">Live Proposal Studio</span>
-                <h3 class="text-lg font-bold text-white">Experience Interactive AI Proposal Generation & Financial Ledger</h3>
+                <span class="text-xs font-mono uppercase tracking-widest text-purple-400 font-semibold">Live Proposal Studio &amp; Directory</span>
+                <h3 class="text-lg font-bold text-white">Experience ProposalAI across Desktop, Tablet, and Mobile Phone</h3>
                 <p class="text-xs text-slate-300">
-                  Interact with the live client dossier builder, reactive deliverables ledger math, and simulated Gemini streaming canvas.
+                  Inspect authentic views: Proposals Directory, Executive Dashboard, Client Accounts, and Services Catalog across 1440px PC, 1024px Tablet, and 390px Native Phone.
                 </p>
               </div>
 
-              <button 
-                @click="portfolioStore.setWorkspaceTab('demos')"
-                class="px-5 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-teal-500/30 transition-all shrink-0"
-              >
-                <Sparkles class="w-4 h-4 text-amber-300" />
-                <span>Launch Live Proposal Studio</span>
-                <ArrowRight class="w-4 h-4" />
-              </button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button 
+                  @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDevice('desktop')"
+                  class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0"
+                >
+                  <Monitor class="w-3.5 h-3.5" />
+                  <span>PC (1440px)</span>
+                </button>
+
+                <button 
+                  @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDevice('tablet')"
+                  class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0"
+                >
+                  <Tablet class="w-3.5 h-3.5" />
+                  <span>Tablet (1024px)</span>
+                </button>
+
+                <button 
+                  @click="portfolioStore.setWorkspaceTab('demos'); portfolioStore.setDevice('mobile')"
+                  class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all shrink-0"
+                >
+                  <Smartphone class="w-3.5 h-3.5 text-amber-300" />
+                  <span>Phone (390px)</span>
+                </button>
+              </div>
             </div>
           </template>
 
