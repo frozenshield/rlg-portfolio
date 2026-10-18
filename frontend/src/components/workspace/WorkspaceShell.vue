@@ -476,6 +476,55 @@ const activeMetricCards = computed(() => {
           </template>
         </div>
 
+        <!-- ================= FULL PAGE LIVE APP RECREATION TAB ================= -->
+        <div
+          v-else-if="portfolioStore.activeWorkspaceTab === 'full-page'"
+          class="fixed inset-0 z-[100] w-screen h-screen overflow-hidden flex flex-col bg-[#090d16]"
+        >
+          <div class="flex-1 w-full h-full overflow-y-auto overflow-x-hidden relative">
+            <ProposalAiDemo v-if="isProposalAi" />
+            <AdminPanelDemo v-else-if="portfolioStore.activeDemoMode === 'admin'" />
+            <BuyerStorefrontDemo v-else />
+          </div>
+
+          <!-- Floating Bottom-Right Whole-Page Controller Pill -->
+          <div class="fixed bottom-4 right-4 z-[120] flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-indigo-500/40 shadow-2xl text-xs">
+            <template v-if="!isProposalAi">
+              <button
+                @click="portfolioStore.setDemoMode('admin'); portfolioStore.setDevice('desktop')"
+                :class="[
+                  'px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer',
+                  portfolioStore.activeDemoMode === 'admin'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ]"
+              >
+                <LayoutDashboard class="w-3.5 h-3.5" />
+                <span>Admin Command Center</span>
+              </button>
+              <button
+                @click="portfolioStore.setDemoMode('storefront'); portfolioStore.setDevice('desktop')"
+                :class="[
+                  'px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer',
+                  portfolioStore.activeDemoMode === 'storefront'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ]"
+              >
+                <Store class="w-3.5 h-3.5" />
+                <span>Buyer Storefront</span>
+              </button>
+            </template>
+            <button
+              @click="portfolioStore.setWorkspaceTab('demos')"
+              class="px-3 py-1.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Return to Workspace Simulator"
+            >
+              <span>Exit Whole Page</span>
+            </button>
+          </div>
+        </div>
+
         <!-- ================= INFRASTRUCTURE TAB ================= -->
         <div v-else-if="portfolioStore.activeWorkspaceTab === 'infra'" class="space-y-6">
           <DeploymentView />

@@ -80,6 +80,14 @@ const resolutionLabel = computed(() => {
             <Store class="w-3.5 h-3.5" />
             <span>Buyer Storefront</span>
           </button>
+          <button
+            @click="portfolioStore.setWorkspaceTab('full-page'); portfolioStore.setDevice('desktop')"
+            class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold text-amber-300 hover:text-white hover:bg-amber-500/20 border border-amber-500/30 transition-all ml-1"
+            title="Recreate Whole Page in Full Screen"
+          >
+            <Maximize2 class="w-3.5 h-3.5" />
+            <span>Whole Page</span>
+          </button>
         </div>
       </div>
 
@@ -202,7 +210,7 @@ const resolutionLabel = computed(() => {
             </div>
 
             <!-- Mobile Viewport Scrollable App Content -->
-            <div class="flex-1 overflow-y-auto overflow-x-hidden relative p-3">
+            <div :class="['flex-1 overflow-y-auto overflow-x-hidden relative', portfolioStore.activeDemoMode === 'admin' ? 'p-0' : 'p-3']">
               <slot />
             </div>
 
@@ -259,7 +267,7 @@ const resolutionLabel = computed(() => {
         </div>
 
         <!-- Browser Viewport Inner Content (Fixed Height, Scrollable within Device) -->
-        <div class="h-[750px] overflow-y-auto overflow-x-hidden min-w-0 w-full p-2 sm:p-4 bg-[#090d16]">
+        <div :class="['h-[750px] overflow-y-auto overflow-x-hidden min-w-0 w-full bg-[#090d16]', portfolioStore.activeDemoMode === 'admin' ? 'p-0' : 'p-2 sm:p-4']">
           <slot />
         </div>
       </div>

@@ -1,0 +1,789 @@
+/* ==========================================================================
+   RLG HOBBY SHOP - REAL PAGE THEME ENGINE (STOREFRONT & PREVIEW)
+   ========================================================================== */
+
+:root,
+[data-theme="collector"] {
+  --theme-bg: #090d16;
+  --theme-surface: #0f172a;
+  --theme-surface-elevated: #1e293b;
+  --theme-border: #334155;
+  --theme-text: #f8fafc;
+  --theme-text-muted: #94a3b8;
+  --theme-accent: #f59e0b;
+  --theme-secondary: #6366f1;
+}
+
+/* ==========================================================================
+   SAFEGUARD FOR AD BANNERS & IMAGE VIGNETTE OVERLAYS ACROSS ALL THEMES
+   Prevents semi-transparent image overlays (e.g., from-slate-950/40) from
+   turning into solid opaque blocks that hide banner images.
+   ========================================================================== */
+html[data-theme] .storefront-theme-shell .pointer-events-none.inset-0,
+html[data-theme] .storefront-theme-shell .from-slate-950\/40 {
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    to top,
+    rgba(2, 6, 23, 0.35),
+    transparent,
+    rgba(0, 0, 0, 0.15)
+  ) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   1. LIGHT MODE (Simple Shopper) - Clean Everyday E-Commerce Light Theme
+   ========================================================================== */
+html[data-theme="light"] body,
+html[data-theme="light"] .storefront-theme-shell {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell header {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="light"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #ffffff 0%, #f1f5f9 60%, #eef2ff 100%) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="light"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="bg-slate-800"]:not([class*="bg-slate-800/4"]) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="border-slate-800"],
+html[data-theme="light"] .storefront-theme-shell [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="text-white"]:not([class*="bg-rose-"]):not([class*="bg-indigo-6"]):not([class*="bg-emerald-"]):not([class*="bg-amber-5"]):not([class*="bg-blue-6"]):not([class*="bg-slate-950/6"]):not([class*="bg-black/"]),
+html[data-theme="light"] .storefront-theme-shell [class*="text-slate-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-slate-200"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="text-slate-300"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-slate-400"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-gray-400"] {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-amber-400"] {
+  color: #b45309 !important;
+}
+
+/* Ensure all light/pastel text colors become dark / high-contrast black or dark slate in light mode */
+html[data-theme="light"] .storefront-theme-shell [class*="text-pink-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-pink-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-pink-300"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-amber-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-amber-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-yellow-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-yellow-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-indigo-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-indigo-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-purple-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-purple-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-emerald-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-emerald-200"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-blue-100"],
+html[data-theme="light"] .storefront-theme-shell [class*="text-blue-200"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .storefront-theme-shell [class~="bg-indigo-950"],
+html[data-theme="light"] .storefront-theme-shell [class*=" bg-indigo-950"]:not([class*="hover:bg-indigo-950"]) {
+  background-color: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+
+/* ==========================================================================
+   2. PLAYTIME MODE (Kids & Family) - Bright Pastel Light Theme
+   ========================================================================== */
+html[data-theme="playtime"] body,
+html[data-theme="playtime"] .storefront-theme-shell {
+  background-color: #fff9ed !important;
+  background-image:
+    radial-gradient(rgba(251, 191, 36, 0.32) 2px, transparent 2px),
+    radial-gradient(rgba(56, 189, 248, 0.25) 2px, #fff9ed 2px) !important;
+  background-size: 36px 36px !important;
+  background-position: 0 0, 18px 18px !important;
+  color: #1e293b !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell header {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: #fde68a !important;
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15) !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="playtime"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #fffbeb 0%, #e0f2fe 55%, #fce7f3 100%) !important;
+  border-color: #93c5fd !important;
+  color: #0f172a !important;
+  box-shadow: 0 12px 32px -4px rgba(14, 165, 233, 0.14) !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="playtime"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="bg-slate-800"]:not([class*="bg-slate-800/4"]) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="border-slate-800"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="border-slate-700"] {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-white"]:not([class*="bg-rose-"]):not([class*="bg-indigo-6"]):not([class*="bg-emerald-"]):not([class*="bg-amber-5"]):not([class*="bg-blue-6"]):not([class*="bg-slate-950/6"]):not([class*="bg-black/"]),
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-slate-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-slate-200"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-slate-300"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-slate-400"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-gray-400"] {
+  color: #475569 !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-amber-400"] {
+  color: #e11d48 !important;
+}
+
+/* Ensure all light/pastel text colors become dark / high-contrast in playtime mode */
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-pink-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-pink-200"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-pink-300"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-amber-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-amber-200"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-yellow-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-yellow-200"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-indigo-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-indigo-200"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-emerald-100"],
+html[data-theme="playtime"] .storefront-theme-shell [class*="text-emerald-200"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="playtime"] .storefront-theme-shell [class~="bg-indigo-950"],
+html[data-theme="playtime"] .storefront-theme-shell [class*=" bg-indigo-950"]:not([class*="hover:bg-indigo-950"]) {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
+}
+
+/* ==========================================================================
+   3. BLUEPRINT WORKBENCH MODE (Modelers & DIY Builders) - Drafting Grid & CAD
+   ========================================================================== */
+html[data-theme="workbench"] body,
+html[data-theme="workbench"] .storefront-theme-shell {
+  background-color: #071f38 !important;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to right, rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.06) 1px, transparent 1px) !important;
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px !important;
+  color: #e0f2fe !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell * {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell header {
+  background-color: rgba(7, 31, 56, 0.92) !important;
+  border-bottom: 1px dashed rgba(56, 189, 248, 0.5) !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="workbench"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #0a294a 0%, #0f3d6e 60%, #08203a 100%) !important;
+  border: 1px dashed #38bdf8 !important;
+  border-radius: 4px !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="workbench"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: rgba(12, 45, 79, 0.92) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  border-radius: 4px !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell [class*="border-slate-800"],
+html[data-theme="workbench"] .storefront-theme-shell [class*="border-slate-700"] {
+  border-color: rgba(56, 189, 248, 0.38) !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="workbench"] .storefront-theme-shell [class*="text-amber-400"] {
+  color: #4ade80 !important;
+}
+
+html[data-theme="workbench"] .storefront-theme-shell [class*="bg-amber-400"] {
+  background-color: #38bdf8 !important;
+  color: #041324 !important;
+}
+
+/* ==========================================================================
+   4. RETRO ARCADE MODE (8-Bit Vintage) - Neon Synthwave, CRT Scanlines & Pixel Borders
+   ========================================================================== */
+html[data-theme="retro-arcade"] body,
+html[data-theme="retro-arcade"] .storefront-theme-shell {
+  background-color: #090214 !important;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.42) 0px,
+      rgba(0, 0, 0, 0.42) 2px,
+      transparent 2px,
+      transparent 4px
+    ),
+    linear-gradient(90deg, rgba(217, 70, 239, 0.1) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px) !important;
+  background-size: 100% 4px, 48px 48px, 48px 48px !important;
+  color: #4ade80 !important;
+  font-family: "Courier New", ui-monospace, monospace !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell * {
+  font-family: "Courier New", ui-monospace, monospace !important;
+  border-radius: 0px !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell header {
+  background-color: #130426 !important;
+  border-bottom: 2px solid #d946ef !important;
+  box-shadow: 0 4px 0px #06b6d4 !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #1a0633 0%, #310b52 55%, #0f0322 100%) !important;
+  border: 2px solid #d946ef !important;
+  box-shadow: 6px 6px 0px #06b6d4 !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: #17062e !important;
+  border: 2px solid #d946ef !important;
+  box-shadow: 3px 3px 0px rgba(6, 182, 212, 0.65) !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="text-amber-400"] {
+  color: #39ff14 !important;
+}
+
+html[data-theme="retro-arcade"] .storefront-theme-shell [class*="bg-amber-400"] {
+  background-color: #d946ef !important;
+  color: #ffffff !important;
+  box-shadow: 3px 3px 0px #39ff14 !important;
+}
+
+/* ==========================================================================
+   5. CYBER SALE MODE (Flash Drop & Limited Vault) - High-Voltage Crimson & Neon Yellow
+   ========================================================================== */
+html[data-theme="cyber-sale"] body,
+html[data-theme="cyber-sale"] .storefront-theme-shell {
+  background-color: #080204 !important;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(239, 68, 68, 0.28) 0%, transparent 60%),
+    radial-gradient(circle at 85% 35%, rgba(250, 204, 21, 0.15) 0%, transparent 50%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(239, 68, 68, 0.03) 0px,
+      rgba(239, 68, 68, 0.03) 12px,
+      transparent 12px,
+      transparent 24px
+    ) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="cyber-sale"] .storefront-theme-shell header {
+  background-color: rgba(18, 4, 9, 0.94) !important;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.55) !important;
+  box-shadow: 0 4px 25px rgba(239, 68, 68, 0.25) !important;
+}
+
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #1f050b 0%, #3b0712 50%, #140307 100%) !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.22) !important;
+}
+
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: rgba(24, 6, 12, 0.95) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="text-amber-400"] {
+  color: #facc15 !important;
+}
+
+html[data-theme="cyber-sale"] .storefront-theme-shell [class*="bg-amber-400"] {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* ==========================================================================
+   6. SANTA'S WORKSHOP MODE (Seasonal Holiday Gifting) - Velvet Crimson, Pine & Gold
+   ========================================================================== */
+html[data-theme="seasonal-workshop"] body,
+html[data-theme="seasonal-workshop"] .storefront-theme-shell {
+  background-color: #170508 !important;
+  background-image:
+    radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.14) 2px, transparent 3px),
+    radial-gradient(circle at 75% 15%, rgba(255, 255, 255, 0.12) 1.5px, transparent 2.5px),
+    radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.22) 0%, rgba(16, 185, 129, 0.14) 45%, transparent 75%) !important;
+  background-size: 64px 64px, 48px 48px, 100% 100% !important;
+  color: #fef2f2 !important;
+}
+
+html[data-theme="seasonal-workshop"] .storefront-theme-shell header {
+  background-color: rgba(32, 7, 12, 0.94) !important;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #2e0810 0%, #0d2e1f 65%, #24060c 100%) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.15) !important;
+}
+
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none) {
+  background-color: rgba(38, 9, 15, 0.94) !important;
+  border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="text-indigo-400"],
+html[data-theme="seasonal-workshop"] .storefront-theme-shell [class*="text-indigo-300"] {
+  color: #34d399 !important;
+}
+
+/* ==========================================================================
+   7. PINK SAKURA MODE (Sakura Blossom) - Soft Cherry Blossom Pink, Rose Gold & Petal Accents
+   ========================================================================== */
+html[data-theme="sakura"] body,
+html[data-theme="sakura"] .storefront-theme-shell {
+  background-color: #fff5f8 !important;
+  background-image:
+    radial-gradient(circle at 15% 18%, rgba(244, 114, 182, 0.22) 0%, transparent 42%),
+    radial-gradient(circle at 85% 22%, rgba(251, 113, 133, 0.2) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(249, 168, 212, 0.25) 0%, transparent 50%),
+    linear-gradient(180deg, #fff5f8 0%, #ffe4ee 52%, #fff0f5 100%) !important;
+  color: #4a0e2e !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell header {
+  background-color: rgba(255, 240, 246, 0.94) !important;
+  border-bottom: 2px solid #f9a8d4 !important;
+  box-shadow: 0 6px 24px rgba(236, 72, 153, 0.12) !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="from-slate-950"]:not([class*="from-slate-950/"]):not(.pointer-events-none),
+html[data-theme="sakura"] .storefront-theme-shell [class*="via-slate-900"]:not(.pointer-events-none) {
+  background-image: linear-gradient(135deg, #ffe4ee 0%, #fbcfe8 55%, #fff1f5 100%) !important;
+  border: 2px solid #f472b6 !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 12px 32px rgba(236, 72, 153, 0.15) !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="bg-slate-900"]:not([class*="bg-slate-900/4"]):not([class*="bg-slate-900/5"]):not([class*="bg-slate-900/6"]),
+html[data-theme="sakura"] .storefront-theme-shell [class*="bg-slate-950"]:not([class*="bg-slate-950/4"]):not([class*="bg-slate-950/5"]):not([class*="bg-slate-950/6"]):not(.pointer-events-none),
+html[data-theme="sakura"] .storefront-theme-shell [class*="bg-slate-800"]:not([class*="bg-slate-800/4"]) {
+  background-color: #ffffff !important;
+  border-color: #fbcfe8 !important;
+  box-shadow: 0 8px 22px rgba(236, 72, 153, 0.1) !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="border-slate-800"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="border-slate-700"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="border-white/10"] {
+  border-color: #f9a8d4 !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-white"]:not(button *):not(a[class*="bg-"] *):not([class*="bg-indigo"] *):not([class*="bg-amber"] *):not([class*="bg-emerald"] *):not([class*="bg-rose"] *):not([class*="bg-pink"] *):not(.badge-keep-white),
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-slate-100"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-slate-200"] {
+  color: #500724 !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-slate-300"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-slate-400"] {
+  color: #831843 !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-slate-500"] {
+  color: #9d174d !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-amber-300"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-amber-400"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-indigo-400"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-indigo-300"] {
+  color: #db2777 !important;
+}
+
+/* Ensure all light/pastel text colors become dark / high-contrast in sakura mode */
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-pink-100"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-pink-200"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-pink-300"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-amber-100"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-amber-200"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-yellow-100"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-yellow-200"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-indigo-100"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="text-indigo-200"] {
+  color: #701a75 !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell [class*="bg-amber-400"],
+html[data-theme="sakura"] .storefront-theme-shell [class*="bg-indigo-600"] {
+  background-image: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%) !important;
+  background-color: #ec4899 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(236, 72, 153, 0.35) !important;
+}
+
+html[data-theme="sakura"] .storefront-theme-shell input,
+html[data-theme="sakura"] .storefront-theme-shell select,
+html[data-theme="sakura"] .storefront-theme-shell textarea {
+  background-color: #fff8fb !important;
+  color: #500724 !important;
+  border-color: #f472b6 !important;
+}
+
+/* ==========================================================================
+   8. PRODUCT CATALOG MODAL THEME CONTRAST & LEGIBILITY ENGINE
+   Guarantees that when the storefront theme changes, the quick-view / detail
+   modal reflects the active theme colors while maintaining high text contrast
+   and effortless readability.
+   ========================================================================== */
+
+/* --- Light Mode (Simple Shopper) --- */
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25) !important;
+}
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card h2,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card h3,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card h4 {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card p,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card span.text-slate-300,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card span.text-slate-400,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card div.text-slate-300,
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card ul {
+  color: #334155 !important;
+}
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card [class*="text-white"] {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .product-catalog-modal .catalog-modal-card button[class*="bg-amber-400"] {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+
+/* --- Pink Sakura Mode --- */
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #f472b6 !important;
+  color: #500724 !important;
+  box-shadow: 0 25px 70px -15px rgba(236, 72, 153, 0.3) !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card h2,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card h3,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card h4 {
+  color: #500724 !important;
+  font-weight: 800 !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card p,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card span.text-slate-300,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card span.text-slate-400,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card div.text-slate-300,
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card ul {
+  color: #701a47 !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #fff5f8 !important;
+  border-color: #fbcfe8 !important;
+  color: #500724 !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card [class*="text-white"] {
+  color: #500724 !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card button[class*="bg-amber-400"] {
+  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%) !important;
+  color: #ffffff !important;
+  border-color: #db2777 !important;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.35) !important;
+}
+html[data-theme="sakura"] .product-catalog-modal .catalog-modal-card button.absolute.top-4.right-4 {
+  background-color: #fdf2f8 !important;
+  color: #be185d !important;
+  border-color: #fbcfe8 !important;
+}
+
+/* --- Playtime Mode (Pastel Bright) --- */
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card {
+  background-color: #ffffff !important;
+  border: 2px solid #fde68a !important;
+  color: #1e293b !important;
+  box-shadow: 0 25px 60px -15px rgba(251, 191, 36, 0.25) !important;
+}
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card h2,
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card h3,
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card h4 {
+  color: #1e293b !important;
+}
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card p,
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card span.text-slate-300,
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card div.text-slate-300 {
+  color: #334155 !important;
+}
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #fffdf5 !important;
+  border-color: #fed7aa !important;
+  color: #1e293b !important;
+}
+html[data-theme="playtime"] .product-catalog-modal .catalog-modal-card [class*="text-white"] {
+  color: #1e293b !important;
+}
+
+/* --- Workbench Mode (Blueprint & CAD) --- */
+html[data-theme="workbench"] .product-catalog-modal .catalog-modal-card {
+  background-color: #071f38 !important;
+  border: 1px dashed #38bdf8 !important;
+  color: #e0f2fe !important;
+  box-shadow: 0 25px 60px -15px rgba(56, 189, 248, 0.25) !important;
+}
+html[data-theme="workbench"] .product-catalog-modal .catalog-modal-card h2 {
+  color: #38bdf8 !important;
+}
+html[data-theme="workbench"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="workbench"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #0c2b4d !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+/* --- Retro Arcade Mode (Synthwave Neon) --- */
+html[data-theme="retro-arcade"] .product-catalog-modal .catalog-modal-card {
+  background-color: #130426 !important;
+  border: 2px solid #d946ef !important;
+  color: #4ade80 !important;
+  box-shadow: 8px 8px 0px #06b6d4 !important;
+}
+html[data-theme="retro-arcade"] .product-catalog-modal .catalog-modal-card h2 {
+  color: #f0abfc !important;
+}
+html[data-theme="retro-arcade"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="retro-arcade"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #1e063b !important;
+  border: 1px solid #06b6d4 !important;
+}
+
+/* --- Cyber Sale Mode (High Voltage) --- */
+html[data-theme="cyber-sale"] .product-catalog-modal .catalog-modal-card {
+  background-color: #130307 !important;
+  border: 1px solid #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 45px rgba(239, 68, 68, 0.35) !important;
+}
+html[data-theme="cyber-sale"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="cyber-sale"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #22060d !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+/* --- Seasonal Workshop Mode (Holiday Crimson & Pine) --- */
+html[data-theme="seasonal-workshop"] .product-catalog-modal .catalog-modal-card {
+  background-color: #190408 !important;
+  border: 1px solid #f59e0b !important;
+  color: #fef2f2 !important;
+  box-shadow: 0 15px 50px rgba(245, 158, 11, 0.2) !important;
+}
+html[data-theme="seasonal-workshop"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-950"],
+html[data-theme="seasonal-workshop"] .product-catalog-modal .catalog-modal-card [class*="bg-slate-900"] {
+  background-color: #2b0811 !important;
+  border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+/* ==========================================================================
+   9. VIP BANNER HIGH CONTRAST TEXT RULES FOR LIGHT THEMES
+   ========================================================================== */
+html[data-theme="light"] .vip-banner-desc,
+html[data-theme="playtime"] .vip-banner-desc {
+  color: #0f172a !important;
+}
+html[data-theme="sakura"] .vip-banner-desc {
+  color: #500724 !important;
+}
+html[data-theme="light"] .vip-banner-perk-hint,
+html[data-theme="playtime"] .vip-banner-perk-hint {
+  color: #92400e !important;
+}
+html[data-theme="sakura"] .vip-banner-perk-hint {
+  color: #831843 !important;
+}
+html[data-theme="light"] .vip-banner-badge,
+html[data-theme="playtime"] .vip-banner-badge {
+  color: #831843 !important;
+  border-color: #f472b6 !important;
+}
+
+/* ==========================================================================
+   10. ADMIN THEME PREVIEW ENGINE
+   Allows the Admin Command Center background to reflect the currently tested
+   storefront theme seamlessly when changed in Settings > Store Themes.
+   ========================================================================== */
+
+/* Light Theme */
+html[data-theme="light"] .admin-theme-shell {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+}
+html[data-theme="light"] .admin-topbar {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Playtime Mode (Pastel Yellow Dots) */
+html[data-theme="playtime"] .admin-theme-shell {
+  background-color: #fff9ed !important;
+  background-image:
+    radial-gradient(rgba(251, 191, 36, 0.32) 2px, transparent 2px),
+    radial-gradient(rgba(56, 189, 248, 0.25) 2px, #fff9ed 2px) !important;
+  background-size: 36px 36px !important;
+  background-position: 0 0, 18px 18px !important;
+}
+html[data-theme="playtime"] .admin-topbar {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: #fde68a !important;
+}
+
+/* Pink Sakura Mode */
+html[data-theme="sakura"] .admin-theme-shell {
+  background-color: #fff5f8 !important;
+  background-image:
+    radial-gradient(circle at 15% 18%, rgba(244, 114, 182, 0.22) 0%, transparent 42%),
+    radial-gradient(circle at 85% 22%, rgba(251, 113, 133, 0.2) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(249, 168, 212, 0.25) 0%, transparent 50%),
+    linear-gradient(180deg, #fff5f8 0%, #ffe4ee 52%, #fff0f5 100%) !important;
+}
+html[data-theme="sakura"] .admin-topbar {
+  background-color: rgba(255, 240, 246, 0.94) !important;
+  border-color: #f9a8d4 !important;
+}
+
+/* Blueprint Workbench Mode */
+html[data-theme="workbench"] .admin-theme-shell {
+  background-color: #071f38 !important;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to right, rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.06) 1px, transparent 1px) !important;
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px !important;
+}
+html[data-theme="workbench"] .admin-topbar {
+  background-color: rgba(7, 31, 56, 0.92) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+/* Retro Arcade Mode */
+html[data-theme="retro-arcade"] .admin-theme-shell {
+  background-color: #0d0221 !important;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(217, 70, 239, 0.15) 0%, transparent 60%),
+    linear-gradient(rgba(18, 16, 38, 0) 50%, rgba(0, 0, 0, 0.35) 50%) !important;
+  background-size: 100% 100%, 100% 4px !important;
+}
+html[data-theme="retro-arcade"] .admin-topbar {
+  background-color: rgba(13, 2, 33, 0.95) !important;
+  border-color: #d946ef !important;
+}
+
+/* Cyber Sale Mode */
+html[data-theme="cyber-sale"] .admin-theme-shell {
+  background-color: #050508 !important;
+  background-image:
+    linear-gradient(rgba(244, 63, 94, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 63, 94, 0.08) 1px, #050508 1px) !important;
+  background-size: 40px 40px !important;
+}
+html[data-theme="cyber-sale"] .admin-topbar {
+  background-color: rgba(5, 5, 8, 0.96) !important;
+  border-color: #f43f5e !important;
+}
+
+/* Seasonal Workshop Mode */
+html[data-theme="seasonal-workshop"] .admin-theme-shell {
+  background-color: #0b1a13 !important;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(239, 68, 68, 0.12) 0%, transparent 40%) !important;
+}
+html[data-theme="seasonal-workshop"] .admin-topbar {
+  background-color: rgba(11, 26, 19, 0.96) !important;
+  border-color: #22c55e !important;
+}
+
+/* Collector Dark Mode (Default) */
+html[data-theme="collector"] .admin-theme-shell {
+  background-color: #0b101b !important;
+  background-image: none !important;
+}
+html[data-theme="collector"] .admin-topbar {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: #1e293b !important;
+}
+
+
