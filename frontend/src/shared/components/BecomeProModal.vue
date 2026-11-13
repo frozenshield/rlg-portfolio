@@ -143,7 +143,7 @@ const startQrPhPayment = async () => {
         handleRequireSignIn();
         return;
       }
-      paymentError.value = data.message || "Failed to initialize PayMongo QR Ph payment.";
+      paymentError.value = data.message || "Failed to initialize QR Ph payment.";
       return;
     }
 
@@ -192,11 +192,11 @@ const checkPaymentStatus = async (isManualClick = false) => {
       emit("subscribed");
     } else if (isManualClick) {
       paymentError.value =
-        "PayMongo has not confirmed this payment yet. If you have already scanned and completed the QR Ph transfer in your app, please allow a few moments for the bank or e-wallet to post the transaction, then click 'Check Payment Status' again.";
+        "Payment has not been confirmed yet. If you have already scanned and completed the QR Ph transfer in your app, please allow a few moments for the bank or e-wallet to post the transaction, then click 'Check Payment Status' again.";
     }
   } catch (e) {
     if (isManualClick) {
-      paymentError.value = "Unable to connect to PayMongo verification server.";
+      paymentError.value = "Unable to connect to verification server.";
     }
   } finally {
     if (isManualClick) isVerifying.value = false;
@@ -385,7 +385,7 @@ onUnmounted(() => {
               >
                 <span class="crown-glowing-icon">👑</span>
                 <span>
-                  {{ isGeneratingQr ? "Generating PayMongo QR Ph..." : "Subscribe via PayMongo QR Ph — ₱999.00" }}
+                  {{ isGeneratingQr ? "Generating QR Ph Code..." : "Subscribe via QR Ph — ₱999.00" }}
                 </span>
                 <span>→</span>
               </button>
@@ -397,7 +397,7 @@ onUnmounted(() => {
                 @click="handleRequireSignIn"
               >
                 <span>🔑</span>
-                <span>Sign In to Subscribe via PayMongo QR Ph</span>
+                <span>Sign In to Subscribe via QR Ph</span>
               </button>
 
               <div class="flex items-center justify-center gap-3 text-[11px] text-slate-400 pt-1">
@@ -430,7 +430,7 @@ onUnmounted(() => {
                 ← Back to Perks
               </button>
               <span class="text-[11px] font-black uppercase text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-400/30">
-                Official PayMongo QR Ph
+                Official QR Ph
               </span>
             </div>
 
@@ -450,7 +450,7 @@ onUnmounted(() => {
                   <span class="text-rose-600 font-bold">QR</span>
                   <span class="text-blue-600 font-bold">Ph</span>
                   <span class="text-slate-400">|</span>
-                  <span>PayMongo Gateway</span>
+                  <span>Secure Instant Gateway</span>
                 </div>
                 <span class="font-mono font-bold text-slate-500">{{ orderNumber }}</span>
               </div>
@@ -459,7 +459,7 @@ onUnmounted(() => {
               <div class="relative p-2 rounded-xl bg-white border border-slate-200 shadow-inner">
                 <img
                   :src="qrImageUrl"
-                  alt="PayMongo QR Ph Code"
+                  alt="QR Ph Code"
                   class="w-56 h-56 object-contain"
                 />
               </div>
@@ -474,7 +474,7 @@ onUnmounted(() => {
             <!-- Polling Indicator -->
             <div class="flex items-center justify-center gap-2 text-xs text-amber-300/90 font-medium">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-              <span>Awaiting payment confirmation from PayMongo network...</span>
+              <span>Awaiting payment confirmation...</span>
             </div>
 
             <div v-if="paymentError" class="p-3.5 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-200 text-xs font-semibold leading-relaxed">
@@ -491,7 +491,7 @@ onUnmounted(() => {
               >
                 <span v-if="isVerifying" class="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
                 <span v-else>🔄</span>
-                <span>{{ isVerifying ? "Verifying with PayMongo..." : "Check Payment Status" }}</span>
+                <span>{{ isVerifying ? "Verifying Payment..." : "Check Payment Status" }}</span>
               </button>
 
               <button

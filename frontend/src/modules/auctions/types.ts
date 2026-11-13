@@ -10,8 +10,12 @@ export interface BidRecord {
   id: number;
   user_id: number;
   amount: number;
+  max_bid_cap?: number | null;
+  held_amount?: number;
+  status?: string;
   is_proxy: boolean;
   masked_username: string;
+  user_name?: string;
   created_at: string;
   created_at_human: string;
 }
@@ -19,6 +23,7 @@ export interface BidRecord {
 export interface UserProxyBid {
   id: number;
   max_amount: number;
+  held_amount?: number;
   status: 'active' | 'outbid' | 'won';
 }
 
@@ -30,6 +35,14 @@ export interface AuctionDetail {
   current_price: number;
   bid_increment: number;
   min_next_bid: number;
+  buy_it_now_price?: number | null;
+  can_buy_it_now?: boolean;
+  has_reserve?: boolean;
+  is_reserve_met?: boolean;
+  anti_snipe_window_seconds?: number;
+  anti_snipe_extend_seconds?: number;
+  extensions_count?: number;
+  won_via?: string | null;
   status: 'active' | 'ended' | 'cancelled';
   is_ended: boolean;
   end_time: string;
@@ -37,6 +50,8 @@ export interface AuctionDetail {
   primary_image_url?: string;
   total_bids: number;
   currentUserBidStatus: 'winning' | 'outbid' | 'none';
+  userWalletBalance?: number;
+  userHeldBalance?: number;
   userProxyBid?: UserProxyBid | null;
   highest_bid?: {
     amount: number;
@@ -64,6 +79,10 @@ export interface AuctionListItem {
   current_price: number;
   bid_increment: number;
   min_next_bid: number;
+  buy_it_now_price?: number | null;
+  can_buy_it_now?: boolean;
+  has_reserve?: boolean;
+  is_reserve_met?: boolean;
   status: 'active' | 'ended' | 'cancelled';
   is_ended: boolean;
   end_time: string;
@@ -98,10 +117,11 @@ export interface CustomerBiddingPaymentRecord {
   fulfillment_status: 'order_placed' | 'processing' | 'shipped' | 'in_transit' | 'delivered' | 'completed';
   tracking_number?: string;
   courier?: string;
-  paid_at?: string;
   deadline_at?: string;
-  created_at: string;
-  auction?: AuctionDetail;
+  paid_at?: string;
+  shipped_at?: string;
+  delivered_at?: string;
+  auction?: AuctionListItem;
 }
 
 export interface UserBidSummaryItem {

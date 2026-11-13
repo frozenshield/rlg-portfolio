@@ -1319,7 +1319,7 @@ const formatTimeAgo = (dateStr?: string) => {
 
   <!-- Floating Dock Trigger Buttons (Bottom Right) -->
   <div
-    class="fixed bottom-6 right-6 z-40 select-none font-display flex flex-col items-end"
+    class="fixed right-4 sm:right-6 z-30 select-none font-display flex flex-col items-end transition-all duration-300 floating-ai-dock"
     :class="{ 'max-md:hidden': isOpen }"
   >
     <!-- Welcome Speech Bubble for immediate discoverability -->
@@ -1459,3 +1459,16 @@ const formatTimeAgo = (dateStr?: string) => {
   </div>
   </div>
 </template>
+<style scoped>
+.floating-ai-dock {
+  /* Shift upward on mobile to float right above the bottom navigation bar (~70px) + gesture bar safe area */
+  bottom: calc(70px + 12px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .floating-ai-dock {
+    /* Reset to standard desktop bottom margin */
+    bottom: 1.5rem;
+  }
+}
+</style>

@@ -84,7 +84,7 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen py-8 font-display">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <!-- Clickable VIP Trigger Banner ("Become a Pro" Modal Trigger) -->
       <div
         role="button"

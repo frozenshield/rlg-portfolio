@@ -63,7 +63,9 @@ export const useCatalogStore = defineStore("catalogStore", () => {
           }
         }
 
-        toys.value = items.map(mapApiProductToToy);
+        toys.value = items
+          .filter((p: any) => !/^IMG[ _0-9]/i.test(String(p.name || '')))
+          .map(mapApiProductToToy);
         isLoaded.value = true;
       }
     } catch (e) {

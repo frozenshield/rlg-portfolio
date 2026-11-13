@@ -25,7 +25,7 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen py-10 font-display">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <!-- ─── Page Header ──────────────────────────────────────────────────── -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>

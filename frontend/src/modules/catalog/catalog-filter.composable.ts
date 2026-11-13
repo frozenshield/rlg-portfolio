@@ -23,10 +23,10 @@ export const useCatalogFilterComposable = () => {
     isDetailModalOpen,
   } = storeToRefs(store);
 
-  // Pagination State (Default 16 per page for clean 4x4 grid)
+  // Pagination State (Default 15 per page for 3-column mobile layout)
   const currentPage = ref(1);
-  const itemsPerPage = ref(16);
-  const pageSizeOptions = [12, 16, 24, 36, 48];
+  const itemsPerPage = ref(15);
+  const pageSizeOptions = [15, 30, 45, 60];
 
   // Reset to page 1 whenever any filter or sorting criteria changes
   watch(
@@ -57,11 +57,11 @@ export const useCatalogFilterComposable = () => {
         // Search query match
         if (searchQuery.value.trim()) {
           const query = searchQuery.value.toLowerCase().trim();
-          const matchesName = toy.name.toLowerCase().includes(query);
-          const matchesBrand = toy.brand.toLowerCase().includes(query);
-          const matchesTag = toy.tags.some((tag) =>
-            tag.toLowerCase().includes(query),
-          );
+          const matchesName = (toy.name || "").toLowerCase().includes(query);
+          const matchesBrand = (toy.brand || "").toLowerCase().includes(query);
+          const matchesTag = Array.isArray(toy.tags)
+            ? toy.tags.some((tag) => (tag || "").toLowerCase().includes(query))
+            : false;
           const matchesSeries =
             toy.tcgSeries && toy.tcgSeries.toLowerCase().includes(query);
           if (!matchesName && !matchesBrand && !matchesTag && !matchesSeries)

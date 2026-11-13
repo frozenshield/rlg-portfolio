@@ -17,7 +17,7 @@ const openItemsDetail = (order: AdminOrder) => {
   isItemsDetailModalOpen.value = true;
 };
 
-const setTimeframe = async (timeframe: "today" | "week" | "month") => {
+const setTimeframe = async (timeframe: "today" | "week" | "month" | "all") => {
   adminStore.dashboardTimeframe = timeframe;
   await adminStore.fetchDashboardData(timeframe);
 };
@@ -99,11 +99,23 @@ onMounted(async () => {
         >
           This Month
         </button>
+        <button
+          type="button"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+          :class="
+            adminStore.dashboardTimeframe === 'all'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800'
+          "
+          @click="setTimeframe('all')"
+        >
+          All Time
+        </button>
       </div>
     </div>
 
     <!-- At-a-Glance Core Metrics (8 Cards including Total Cancelled & Total Returned from SP) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <!-- Total Revenue -->
       <div
         class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3"

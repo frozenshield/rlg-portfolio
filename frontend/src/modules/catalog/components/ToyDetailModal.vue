@@ -8,6 +8,8 @@ import { mapApiProductToToy } from "@/shared/utils/productMapper";
 import { resolveStorageUrl } from "@/shared/utils/api";
 import { useCartStore } from "@/modules/cart/cart.store";
 import { useWishlistStore } from "@/modules/wishlist/wishlist.store";
+import { useAuthStore } from "@/modules/auth/auth.store";
+import { useRouter } from "vue-router";
 import BaseBadge from "@/shared/components/BaseBadge.vue";
 import BaseRating from "@/shared/components/BaseRating.vue";
 import BaseButton from "@/shared/components/BaseButton.vue";
@@ -25,6 +27,29 @@ const emit = defineEmits<{
 
 const cartStore = useCartStore();
 const wishlistStore = useWishlistStore();
+const authStore = useAuthStore();
+const router = useRouter();
+
+const isVipProduct = computed(() => {
+  if (!props.toy) return false;
+  const t = props.toy as any;
+  if (t.isPromotion || t.is_promotion || t.isVip || t.is_vip) return true;
+  if (t.tags && Array.isArray(t.tags) && t.tags.some((tag: string) => typeof tag === 'string' && tag.toLowerCase().includes('vip'))) {
+    return true;
+  }
+  if (typeof t.tags === 'string' && t.tags.toLowerCase().includes('vip')) return true;
+  if (typeof t.category === 'string' && t.category.toLowerCase().includes('vip')) return true;
+  return false;
+});
+
+const isUserVip = computed(() => {
+  return Boolean(authStore.currentUser?.is_vip || (authStore.currentUser as any)?.customer_profile?.is_vip);
+});
+
+const handleGoToVip = () => {
+  emit('close');
+  router.push('/vip');
+};
 
 const quantity = ref(1);
 const activeImage = ref("");
@@ -35,6 +60,19 @@ const zoomX = ref(50);
 const zoomY = ref(50);
 const lensX = ref(0);
 const lensY = ref(0);
+const isLightboxOpen = ref(false);
+const isLightboxZooming = ref(false);
+const lightboxZoomX = ref(50);
+const lightboxZoomY = ref(50);
+
+const handleLightboxMouseMove = (e: MouseEvent) => {
+  const container = e.currentTarget as HTMLElement;
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  lightboxZoomX.value = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
+  lightboxZoomY.value = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
+};
 
 const handleImageMouseMove = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -98,6 +136,10 @@ const decrementQty = () => {
 
 const handleAddToCart = () => {
   if (props.toy && props.toy.stock > 0) {
+    if (isVipProduct.value && !isUserVip.value) {
+      handleGoToVip();
+      return;
+    }
     cartStore.addItem(props.toy, quantity.value);
     emit("close");
   }
@@ -225,6 +267,7 @@ const handleAddBundleToCart = () => {
                 @mousemove="handleImageMouseMove"
                 @mouseenter="handleImageMouseEnter"
                 @mouseleave="handleImageMouseLeave"
+                @click="isLightboxOpen = true"
               >
                 <img
                   :src="currentImage"
@@ -259,7 +302,7 @@ const handleAddBundleToCart = () => {
                   class="pointer-events-none absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-slate-900/85 border border-slate-700 text-[10px] font-bold text-slate-300 flex items-center gap-1 shadow-sm"
                 >
                   <span>🔍</span>
-                  <span>Hover to Zoom</span>
+                  <span>Hover to Zoom / Click Fullscreen</span>
                 </div>
 
                 <div class="absolute top-3 left-3 flex flex-col gap-1 pointer-events-none z-10">
@@ -416,7 +459,54 @@ const handleAddBundleToCart = () => {
               </div>
 
               <!-- Quantity Selector & Add to Cart Action -->
-              <div class="pt-2 flex items-center gap-3">
+              <!-- VIP Product Restriction Gate -->
+              <div v-if="isVipProduct && !isUserVip" class="pt-2 space-y-2">
+                <div class="flex items-center gap-3">
+                  <button
+                    type="button"
+                    class="flex-1 py-3.5 px-6 font-black text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 shadow-amber-400/25 border border-amber-300 active:scale-95 cursor-pointer text-center"
+                    @click="handleGoToVip"
+                  >
+                    <span>👑 Be a VIP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="w-11 h-11 rounded-2xl border border-slate-700 bg-slate-950 flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+                    :title="
+                      wishlistStore.isFavorite(toy.id)
+                        ? 'Remove from Wishlist'
+                        : 'Add to Wishlist'
+                    "
+                    @click="handleToggleWishlist"
+                  >
+                    <svg
+                      class="w-5 h-5 transition-colors"
+                      :class="
+                        wishlistStore.isFavorite(toy.id)
+                          ? 'text-amber-400 fill-amber-400'
+                          : 'text-slate-400'
+                      "
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <p class="text-[11px] text-amber-300/90 font-bold text-center">
+                  🔒 Reserved for VIP Pro members. Click &quot;Be a VIP&quot; to unlock checkout privileges!
+                </p>
+              </div>
+
+              <!-- Quantity Selector & Add to Cart Action -->
+              <div v-else class="pt-2 flex items-center gap-3">
                 <div
                   v-if="toy.stock > 0"
                   class="flex items-center border border-slate-700 rounded-2xl p-1 bg-slate-950"
@@ -530,9 +620,9 @@ const handleAddBundleToCart = () => {
                   <!-- Main Product -->
                   <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
                     <img
-                      :src="resolveStorageUrl(currentImage) || 'https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?w=120'"
+                      :src="resolveStorageUrl(currentImage) || 'https://images.pokemontcg.io/swsh7/215_hires.png'"
                       class="w-7 h-7 object-cover rounded-lg"
-                      @error="(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?w=120'; }"
+                      @error="(e: any) => { e.target.src = 'https://images.pokemontcg.io/swsh7/215_hires.png'; }"
                     />
                     <span class="font-bold text-slate-200 truncate max-w-[120px]">{{ toy.name }}</span>
                     <span class="text-amber-400 font-mono text-[11px] font-bold">{{ formatCurrency(toy.price) }}</span>
@@ -569,5 +659,61 @@ const handleAddBundleToCart = () => {
         </div>
       </div>
     </transition>
+
+    <!-- PRODUCT FULLSCREEN LIGHTBOX ZOOM MODAL -->
+    <div
+      v-if="isLightboxOpen && toy"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+      @click="isLightboxOpen = false"
+    >
+      <div
+        class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full p-6 shadow-2xl relative space-y-4"
+        @click.stop
+      >
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🔍</span>
+            <h3 class="text-base font-extrabold text-white truncate max-w-lg">
+              {{ toy.name }}
+            </h3>
+          </div>
+          <button
+            type="button"
+            class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm"
+            @click="isLightboxOpen = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div
+          class="relative w-full h-[65vh] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center cursor-zoom-in select-none"
+          @mousemove="handleLightboxMouseMove"
+          @mouseenter="isLightboxZooming = true"
+          @mouseleave="isLightboxZooming = false"
+        >
+          <img
+            :src="currentImage"
+            :alt="toy.name"
+            class="max-w-full max-h-full object-contain transition-transform duration-100 ease-out"
+            :style="
+              isLightboxZooming
+                ? {
+                    transform: 'scale(2.6)',
+                    transformOrigin: `${lightboxZoomX}% ${lightboxZoomY}%`,
+                  }
+                : {}
+            "
+          />
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>Move cursor to pan across fine product details &bull; Esc / Click outside to close</span>
+          <a :href="currentImage" target="_blank" class="text-amber-400 hover:underline font-bold">
+            Open Original Image ↗
+          </a>
+        </div>
+      </div>
+    </div>
   </teleport>
 </template>

@@ -51,11 +51,42 @@ const activeImageUrl = computed(() => {
   }
   return resolveStorageUrl(raw);
 });
+
+// Magnifying Glass Zoom & Lightbox State
+const isZooming = ref(false);
+const zoomX = ref(50);
+const zoomY = ref(50);
+const lensX = ref(0);
+const lensY = ref(0);
+const isLightboxOpen = ref(false);
+const isLightboxZooming = ref(false);
+const lightboxZoomX = ref(50);
+const lightboxZoomY = ref(50);
+
+const handleImageMouseMove = (e: MouseEvent) => {
+  const container = e.currentTarget as HTMLElement;
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  lensX.value = x;
+  lensY.value = y;
+  zoomX.value = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
+  zoomY.value = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
+};
+
+const handleLightboxMouseMove = (e: MouseEvent) => {
+  const container = e.currentTarget as HTMLElement;
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  lightboxZoomX.value = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
+  lightboxZoomY.value = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
+};
 </script>
 
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="max-w-[1400px] w-full mx-auto space-y-6">
       <!-- Breadcrumbs & Navigation -->
       <nav class="flex items-center justify-between text-xs font-semibold text-slate-400">
         <div class="flex items-center gap-2">
@@ -109,13 +140,48 @@ const activeImageUrl = computed(() => {
       <div v-else-if="auction" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <!-- LEFT COLUMN (5 cols): Product Gallery & Specs -->
         <div class="lg:col-span-5 space-y-4">
-          <!-- Main Hero Image -->
-          <div class="relative bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-square flex items-center justify-center p-4">
+          <!-- Main Hero Image with Magnifying Glass Zoom -->
+          <div
+            class="relative bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-square flex items-center justify-center p-4 cursor-zoom-in group/zoom select-none"
+            @mousemove="handleImageMouseMove"
+            @mouseenter="isZooming = true"
+            @mouseleave="isZooming = false"
+            @click="isLightboxOpen = true"
+          >
             <img
               :src="activeImageUrl"
               :alt="auction.item_name"
-              class="w-full h-full object-contain rounded-2xl transition-all duration-300"
+              class="w-full h-full object-contain rounded-2xl transition-transform duration-100 ease-out"
+              :style="
+                isZooming
+                  ? {
+                      transform: 'scale(2.3)',
+                      transformOrigin: `${zoomX}% ${zoomY}%`,
+                    }
+                  : {}
+              "
             />
+
+            <!-- Floating Magnifying Glass Lens Ring on Hover -->
+            <div
+              v-if="isZooming"
+              class="pointer-events-none absolute w-28 h-28 rounded-full border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)] bg-white/5 z-20 flex items-center justify-center"
+              :style="{
+                left: `${lensX - 56}px`,
+                top: `${lensY - 56}px`,
+              }"
+            >
+              <span class="text-xs opacity-70">🔍</span>
+            </div>
+
+            <!-- Hover Hint Pill Bottom-Left -->
+            <div
+              v-if="!isZooming"
+              class="pointer-events-none absolute bottom-4 left-4 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-700 text-[10px] font-bold text-slate-300 flex items-center gap-1 shadow-sm"
+            >
+              <span>🔍</span>
+              <span>Hover to Zoom / Click for Fullscreen</span>
+            </div>
 
             <!-- Top Left Tag: Lot / Authentic Badge -->
             <div class="absolute top-4 left-4 flex flex-col gap-1.5">
@@ -242,7 +308,11 @@ const activeImageUrl = computed(() => {
               :current-price="auction.current_price"
               :bid-increment="auction.bid_increment"
             />
-            <CountdownTimer :end-time="auction.end_time" />
+            <CountdownTimer
+              :end-time="auction.end_time"
+              :bids-count="bids.length"
+              @time-up="handleAuctionTimeUp"
+            />
           </div>
 
           <!-- 2. The Bidding Controls (Quick Bid vs Auto-Bid Tabs) -->
@@ -256,5 +326,63 @@ const activeImageUrl = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- FULLSCREEN IMAGE LIGHTBOX MODAL -->
+    <teleport to="body">
+      <div
+        v-if="isLightboxOpen && auction"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+        @click="isLightboxOpen = false"
+      >
+        <div
+          class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full p-6 shadow-2xl relative space-y-4"
+          @click.stop
+        >
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🔍</span>
+              <h3 class="text-base font-extrabold text-white truncate max-w-lg">
+                {{ auction.item_name }} (Lot #{{ auction.id }})
+              </h3>
+            </div>
+            <button
+              type="button"
+              class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm"
+              @click="isLightboxOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div
+            class="relative w-full h-[65vh] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center cursor-zoom-in"
+            @mousemove="handleLightboxMouseMove"
+            @mouseenter="isLightboxZooming = true"
+            @mouseleave="isLightboxZooming = false"
+          >
+            <img
+              :src="activeImageUrl"
+              :alt="auction.item_name"
+              class="max-w-full max-h-full object-contain transition-transform duration-100 ease-out"
+              :style="
+                isLightboxZooming
+                  ? {
+                      transform: 'scale(2.6)',
+                      transformOrigin: `${lightboxZoomX}% ${lightboxZoomY}%`,
+                    }
+                  : {}
+              "
+            />
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Move cursor over image to inspect foil, corners, and fine card details</span>
+            <a :href="activeImageUrl" target="_blank" class="text-amber-400 hover:underline font-bold">
+              Open Original Image ↗
+            </a>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </main>
 </template>

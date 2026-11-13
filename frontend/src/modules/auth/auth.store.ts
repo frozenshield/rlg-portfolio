@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { Preferences } from "@capacitor/preferences";
 import axios from "axios";
+import { resolveApiUrl } from "@/shared/utils/api";
 
 export const TOKEN_KEY = "rlg_sanctum_token";
 
@@ -13,6 +14,8 @@ export interface UserProfile {
   phone?: string;
   avatar?: string | null;
   user_type?: "customer" | "staff" | "admin";
+  wallet_balance?: number | string;
+  held_balance?: number | string;
   // Shipping / Address Fields
   address_line1?: string;
   city?: string;
@@ -121,6 +124,10 @@ export const useAuthStore = defineStore("auth", () => {
 
         // Fetch fresh user data from API
         await fetchCurrentUser();
+        try {
+          const { useWalletStore } = await import("@/modules/wallet/wallet.store");
+          await useWalletStore().fetchWalletSummary();
+        } catch {}
       }
 
       // Restore cached settings from localStorage
@@ -154,9 +161,15 @@ export const useAuthStore = defineStore("auth", () => {
       } catch {}
     }
 
+    // Immediately synchronize user's digital wallet balance
+    try {
+      const { useWalletStore } = await import("@/modules/wallet/wallet.store");
+      await useWalletStore().fetchWalletSummary();
+    } catch {}
+
     // Load user settings from API
     try {
-      const sRes = await fetch("/api/user/settings", {
+      const sRes = await fetch(resolveApiUrl("/user/settings"), {
         headers: {
           Authorization: `Bearer ${newToken}`,
           Accept: "application/json",
@@ -177,7 +190,7 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const login = async (credentials: any) => {
-    const response = await axios.post("/api/auth/login", credentials);
+    const response = await axios.post(resolveApiUrl("/auth/login"), credentials);
     const data = response.data;
     const newToken = data.token;
     const newUser = data.user;
@@ -197,13 +210,20 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {}
 
     axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+
+    // Immediately synchronize user's digital wallet balance
+    try {
+      const { useWalletStore } = await import("@/modules/wallet/wallet.store");
+      await useWalletStore().fetchWalletSummary();
+    } catch {}
+
     return data;
   };
 
   const fetchCurrentUser = async () => {
     if (!token.value) return;
     try {
-      const res = await fetch("/api/user", {
+      const res = await fetch(resolveApiUrl("/user"), {
         headers: {
           Authorization: `Bearer ${token.value}`,
           Accept: "application/json",
@@ -217,9 +237,20 @@ export const useAuthStore = defineStore("auth", () => {
           localStorage.setItem("auth_user", JSON.stringify(currentUser.value));
         } catch {}
 
+        // Immediately update walletStore balance if provided in user model
+        if (data.wallet_balance !== undefined) {
+          try {
+            const { useWalletStore } = await import("@/modules/wallet/wallet.store");
+            const wStore = useWalletStore();
+            wStore.walletBalance = Number(data.wallet_balance || 0);
+            wStore.heldBalance = Number(data.held_balance || 0);
+            wStore.totalEquity = wStore.walletBalance + wStore.heldBalance;
+          } catch {}
+        }
+
         // Also sync settings from backend
         try {
-          const sRes = await fetch("/api/user/settings", {
+          const sRes = await fetch(resolveApiUrl("/user/settings"), {
             headers: {
               Authorization: `Bearer ${token.value}`,
               Accept: "application/json",
@@ -323,6 +354,14 @@ export const useAuthStore = defineStore("auth", () => {
       cartStore.clearCart();
     } catch (e) {
       console.warn("Could not clear cart during logout", e);
+    }
+
+    try {
+      const { useWalletStore } = await import("@/modules/wallet/wallet.store");
+      const walletStore = useWalletStore();
+      walletStore.resetWallet();
+    } catch (e) {
+      console.warn("Could not reset wallet during logout", e);
     }
 
     currentUser.value = {

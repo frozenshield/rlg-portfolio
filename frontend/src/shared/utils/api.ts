@@ -86,6 +86,11 @@ export function resolveApiUrl(path: string): string {
   return `${API_BASE_URL}${cleanPath}`;
 }
 
+// Canonical Cloudflare R2 public bucket URL for product images
+export const CLOUDFLARE_R2_URL =
+  import.meta.env.VITE_CLOUDFLARE_R2_URL ||
+  "https://pub-f25cefd3a5a349788bf015e8d7ab04e2.r2.dev";
+
 /**
  * Standardized Image & Storage Asset URL Resolver
  * 
@@ -93,11 +98,11 @@ export function resolveApiUrl(path: string): string {
  * 1. Empty / null / undefined -> returns ""
  * 2. Blob / Data preview URLs -> returned as-is (in-memory previews before upload)
  * 3. Vite static public frontend assets (/images/..., /assets/..., /logo.) -> returned as-is
- * 4. External third-party URLs (e.g. Unsplash, external CDNs) -> returned as-is
- * 5. Backend storage paths (e.g. /storage/..., storage/..., products/..., or full URLs from
- *    backend / localhost / rlgonlineshop.com) -> normalized to point directly to backend storage.
- *    In production: https://rlgshop-production.up.railway.app/storage/...
- *    In local dev: /storage/... (proxied via Vite dev server)
+ * 4. Cloudflare R2 URLs (e.g. *.r2.dev, cloudflarestorage.com, or custom R2 CDN) -> returned as-is with HTTPS
+ * 5. Migrated product images (products/..., /storage/products/..., or old Railway/localhost product URLs)
+ *    -> automatically mapped to Cloudflare R2 public URL
+ * 6. External third-party URLs (e.g. Unsplash, external CDNs) -> returned as-is
+ * 7. Non-product backend storage paths -> normalized to backend storage
  */
 export function resolveStorageUrl(url: string | null | undefined): string {
   if (!url || typeof url !== "string" || url.trim() === "") {
@@ -122,7 +127,26 @@ export function resolveStorageUrl(url: string | null | undefined): string {
     return clean.startsWith("/") ? clean : `/${clean}`;
   }
 
-  // Determine backend storage base origin (e.g. "https://rlgshop-production.up.railway.app" or "")
+  const r2Base = CLOUDFLARE_R2_URL.replace(/\/+$/, "");
+
+  // 3. Already pointing to Cloudflare R2
+  if (
+    clean.includes("r2.dev") ||
+    clean.includes("cloudflarestorage.com") ||
+    clean.startsWith(r2Base)
+  ) {
+    return clean.replace(/^http:\/\//i, "https://");
+  }
+
+  // 4. Product images migrated to Cloudflare R2
+  // Matches any path ending with products/{filename} from old storage, localhost, or Railway
+  const productMatch = clean.match(/(?:^|\/)(?:storage\/)?(products\/[^\s?#]+)/i);
+  if (productMatch && productMatch[1]) {
+    const productRelPath = productMatch[1].replace(/^\/+/, "");
+    return `${r2Base}/${productRelPath}`;
+  }
+
+  // 5. Determine backend storage base origin for other assets
   const backendBase =
     BACKEND_URL ||
     (typeof window !== "undefined" &&
@@ -131,9 +155,9 @@ export function resolveStorageUrl(url: string | null | undefined): string {
       ? RAILWAY_BACKEND_ORIGIN
       : "");
 
-  // 3. Handle full HTTP/HTTPS URLs
+  // 6. Handle full HTTP/HTTPS URLs
   if (/^https?:\/\//i.test(clean)) {
-    // A. Localhost dev remnants: http://localhost:8000/storage/..., http://127.0.0.1:8000/storage/...
+    // Localhost dev remnants: http://localhost:8000/storage/...
     const localhostMatch = clean.match(
       /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/storage\/(.*)$/i
     );
@@ -143,7 +167,7 @@ export function resolveStorageUrl(url: string | null | undefined): string {
         : `/storage/${localhostMatch[1]}`;
     }
 
-    // B. Pointed to static frontend domain: https://(www.)rlgonlineshop.com/storage/...
+    // Pointed to static frontend domain: https://(www.)rlgonlineshop.com/storage/...
     const prodFrontendMatch = clean.match(
       /^https?:\/\/(?:www\.)?rlgonlineshop\.com\/storage\/(.*)$/i
     );
@@ -153,19 +177,11 @@ export function resolveStorageUrl(url: string | null | undefined): string {
         : `/storage/${prodFrontendMatch[1]}`;
     }
 
-    // C. Already points to the Railway backend domain: https://rlgshop-production.up.railway.app/storage/...
-    const railwayBackendMatch = clean.match(
-      /^https?:\/\/rlgshop-production\.up\.railway\.app\/storage\/(.*)$/i
-    );
-    if (railwayBackendMatch) {
-      return clean;
-    }
-
-    // D. Any other external image URL (e.g. Unsplash, Cloudinary, etc.) -> keep as-is
-    return clean;
+    // Keep third-party URLs as-is
+    return clean.replace(/^http:\/\//i, "https://");
   }
 
-  // 4. Relative storage paths
+  // 7. Relative storage paths for non-product assets
   let relativePath = clean;
 
   if (relativePath.startsWith("/storage/")) {
@@ -173,7 +189,6 @@ export function resolveStorageUrl(url: string | null | undefined): string {
   } else if (relativePath.startsWith("storage/")) {
     relativePath = relativePath.slice("storage/".length);
   } else {
-    // Relative folder inside storage disk, e.g. "products/xyz.png" or "/products/xyz.png"
     relativePath = relativePath.replace(/^\/+/, "");
   }
 

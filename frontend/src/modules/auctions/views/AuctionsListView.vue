@@ -32,16 +32,20 @@ const handleFilterChange = (filter: 'all' | 'active' | 'ended') => {
   auctionStore.fetchAuctions(filter);
 };
 
-const formatPrice = (val: number) => {
-  return Number(val || 0).toLocaleString('en-PH', {
+const formatPrice = (val: number | string | null | undefined) => {
+  const num = typeof val === 'number' ? val : parseFloat(String(val ?? 0));
+  return Number(!isNaN(num) ? num : 0).toLocaleString('en-PH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 };
 
-const getRemainingTimeData = (endTimeIso: string) => {
+const getRemainingTimeData = (endTimeIso: string, bidsCount: number = 0) => {
   const diff = new Date(endTimeIso).getTime() - currentTime.value;
   if (diff <= 0) {
+    if (bidsCount === 0) {
+      return { isEnded: false, text: '🔄 Resetting Timer...', isAntiSniping: false };
+    }
     return { isEnded: true, text: 'Auction Closed', isAntiSniping: false };
   }
 
@@ -78,31 +82,55 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
 
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="max-w-[1400px] w-full mx-auto space-y-8">
       <!-- Header & Headline -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">
             <span>⚡ Real-Time Trading Post</span>
             <span>•</span>
-            <span>₱50 Strict Increment</span>
+            <span>Auto-Proxy Bidding + Popcorn Anti-Snipe</span>
           </div>
           <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
             Collector Auction Arena
           </h1>
           <p class="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
-            Live competitive bidding for certified authentic cards, booster boxes, and rare scale figures. Protected by pessimistic locking and anti-sniping timers.
+            Live competitive bidding for certified authentic cards, booster boxes, and rare scale figures. Protected by wallet escrow holds, proxy max-caps, and anti-sniping timers.
           </p>
         </div>
 
-        <!-- Right Side: Filter Pills + My Auctions Link -->
+        <!-- Right Side: Ecosystem Links + Filter Pills -->
         <div class="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
           <router-link
+            to="/wallet"
+            class="px-3.5 py-2 rounded-xl text-xs font-black bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5 transition-all"
+          >
+            <span>💳</span>
+            <span>Digital Wallet</span>
+          </router-link>
+
+          <router-link
+            to="/raffles"
+            class="px-3.5 py-2 rounded-xl text-xs font-black bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition-all"
+          >
+            <span>🎯</span>
+            <span>100-Slot Raffles</span>
+          </router-link>
+
+          <router-link
+            to="/gacha"
+            class="px-3.5 py-2 rounded-xl text-xs font-black bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 flex items-center gap-1.5 transition-all"
+          >
+            <span>🎰</span>
+            <span>Oripa Gacha &amp; Breaks</span>
+          </router-link>
+
+          <router-link
             to="/profile/auctions"
-            class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2 transition-all shadow-sm"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-all"
           >
             <span>🔨</span>
-            <span>My Watchlist &amp; Won Lots</span>
+            <span>My Bids &amp; Watchlist</span>
           </router-link>
 
           <div class="flex items-center p-1 bg-slate-900 rounded-2xl border border-slate-800 gap-1">
@@ -182,11 +210,15 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
             <img
               :src="resolveStorageUrl(item.primary_image_url) || 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=800'"
               :alt="item.item_name"
+              width="400"
+              height="300"
+              loading="lazy"
+              decoding="async"
               class="w-full h-full object-contain rounded-2xl group-hover:scale-105 transition-transform duration-500"
             />
 
-            <!-- Top Left: Live Status Pill -->
-            <div class="absolute top-3 left-3 flex items-center gap-2">
+            <!-- Top Left: Live Status Pill + Reserve Status -->
+            <div class="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
               <span
                 v-if="!item.is_ended && !getRemainingTimeData(item.end_time).isEnded"
                 class="px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase flex items-center gap-1.5 shadow-sm"
@@ -199,6 +231,18 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
                 class="px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-slate-400 border border-slate-700 text-[10px] font-bold uppercase"
               >
                 Closed
+              </span>
+
+              <span
+                v-if="item.has_reserve"
+                class="px-2 py-0.5 rounded-full backdrop-blur-md text-[9px] font-black uppercase border"
+                :class="
+                  item.is_reserve_met
+                    ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                    : 'bg-amber-950/80 text-amber-300 border-amber-500/40'
+                "
+              >
+                {{ item.is_reserve_met ? '✓ Reserve Met' : '🔒 Reserve Active' }}
               </span>
             </div>
 
@@ -217,18 +261,18 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
             <!-- Bottom Left: Prominent Live Countdown Timer Pill -->
             <div class="absolute bottom-3 left-3">
               <div
-                v-if="!item.is_ended && !getRemainingTimeData(item.end_time).isEnded"
+                v-if="!item.is_ended && !getRemainingTimeData(item.end_time, item.bids_count).isEnded"
                 class="px-2.5 py-1 rounded-xl backdrop-blur-md text-xs font-mono font-black flex items-center gap-1.5 shadow-lg border"
                 :class="
-                  getRemainingTimeData(item.end_time).isAntiSniping
+                  getRemainingTimeData(item.end_time, item.bids_count).isAntiSniping
                     ? 'bg-red-950/90 text-red-400 border-red-500/60 animate-pulse'
                     : 'bg-slate-950/85 text-amber-300 border-amber-500/30'
                 "
               >
                 <span>⏳</span>
-                <span>{{ getRemainingTimeData(item.end_time).text }}</span>
+                <span>{{ getRemainingTimeData(item.end_time, item.bids_count).text }}</span>
                 <span
-                  v-if="getRemainingTimeData(item.end_time).isAntiSniping"
+                  v-if="getRemainingTimeData(item.end_time, item.bids_count).isAntiSniping"
                   class="text-[9px] px-1 py-0.2 rounded bg-red-500/30 text-red-200 font-sans uppercase font-extrabold"
                 >
                   Anti-Sniping
@@ -251,9 +295,17 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
           <!-- Body -->
           <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
             <div>
-              <span class="text-[10px] font-mono font-bold text-slate-400 block mb-1">
-                LOT #{{ item.id }}
-              </span>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-[10px] font-mono font-bold text-slate-400">
+                  LOT #{{ item.id }}
+                </span>
+                <span
+                  v-if="item.buy_it_now_price"
+                  class="text-[10px] font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg"
+                >
+                  ⚡ Buyout ₱{{ formatPrice(item.buy_it_now_price) }}
+                </span>
+              </div>
               <h3 class="text-base font-extrabold text-white line-clamp-2 group-hover:text-amber-400 transition-colors leading-snug">
                 {{ item.item_name }}
               </h3>
@@ -262,15 +314,17 @@ const handleToggleFavorite = async (item: AuctionListItem) => {
             <!-- Prices & Next Bid -->
             <div class="pt-3 border-t border-slate-800/80 flex items-end justify-between">
               <div>
-                <span class="text-[10px] uppercase font-bold text-slate-400 block">Current Highest</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">
+                  {{ (item.bids_count || 0) === 0 ? 'Starting Bid' : 'Current Highest' }}
+                </span>
                 <span class="text-xl font-black font-mono text-amber-400">
-                  ₱{{ formatPrice(item.current_price) }}
+                  ₱{{ formatPrice(Number(item.current_price) > 0 ? item.current_price : (item.starting_price || 0)) }}
                 </span>
               </div>
               <div class="text-right">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block">Min Next</span>
                 <span class="text-xs font-mono font-bold text-slate-300">
-                  ₱{{ formatPrice(item.min_next_bid) }}
+                  ₱{{ formatPrice((item.bids_count || 0) === 0 ? (Number(item.current_price) > 0 ? item.current_price : (item.starting_price || 0)) : item.min_next_bid) }}
                 </span>
               </div>
             </div>

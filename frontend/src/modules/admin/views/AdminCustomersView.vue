@@ -56,7 +56,8 @@ const fetchDbCustomers = async () => {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const dbCustomers: CustomerProfile[] = json.data.map((p: any) => ({
-          id: `CUST-${p.id}`,
+          id: p.user?.uuid ? `usr_${p.user.uuid.slice(0, 8)}` : `CUST-${p.id}`,
+          uuid: p.user?.uuid || '',
           name: p.name || p.user?.name || "Collector",
           email: p.user?.email || "customer@rlghobby.com",
           phone: p.phone || "N/A",
@@ -534,7 +535,7 @@ const deleteReview = async (id: number) => {
                         c.name
                       }}</span>
                       <span class="text-[10px] text-slate-400 font-mono">{{
-                        c.id
+                        c.uuid ? 'uuid:' + c.uuid.slice(0, 8) + '...' : c.id
                       }}</span>
                     </div>
                   </div>

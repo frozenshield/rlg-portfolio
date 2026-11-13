@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAdminStore } from "./admin.store";
 import { deriveUserTotpSecret, verifyTotpCode } from "@/modules/auth/totp.utils";
@@ -28,8 +28,13 @@ const handleClearanceClose = (isOpen: boolean) => {
   }
 };
 
-// Hydrate remembered admin username from localStorage
+// Hydrate remembered admin username from localStorage & check clearance gate
 onMounted(() => {
+  const isUnlocked = typeof sessionStorage !== "undefined" && sessionStorage.getItem("rlg_staff_unlocked") === "true";
+  if (!isUnlocked) {
+    isClearanceModalOpen.value = true;
+  }
+
   const savedUser = localStorage.getItem("rlg_admin_remember_user");
   if (savedUser) {
     username.value = savedUser;
@@ -38,6 +43,10 @@ onMounted(() => {
 });
 
 // ─── Admin 2FA Challenge State ────────────────────────────────────────────────
+onBeforeUnmount(() => {
+  isLoginSuccess.value = false;
+});
+
 const is2faStep = ref(false);
 const twoFactorMethod = ref<"authenticator" | "email">("authenticator");
 const twoFactorCode = ref("");
@@ -85,6 +94,9 @@ const handleLogin = async () => {
       return;
     }
 
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("rlg_staff_unlocked", "true");
+    }
     loggedAdminName.value = adminStore.currentAdmin?.name || username.value.trim();
     isLoginSuccess.value = true;
 
@@ -156,6 +168,9 @@ const handleVerifyAdmin2fa = async () => {
       return;
     }
 
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("rlg_staff_unlocked", "true");
+    }
     loggedAdminName.value = adminStore.currentAdmin?.name || username.value.trim();
     isLoginSuccess.value = true;
 
@@ -166,6 +181,15 @@ const handleVerifyAdmin2fa = async () => {
   } finally {
     is2faLoading.value = false;
   }
+};
+
+const forceRedirectNow = (target?: string) => {
+  const dest = target || (route.query.redirect as string) || "/admin/dashboard";
+  const cleanDest =
+    !dest || dest === "/admin" || dest === "/admin/" || dest.startsWith("/admin/login")
+      ? "/admin/dashboard"
+      : dest;
+  window.location.href = cleanDest;
 };
 
 const completeRedirect = () => {
@@ -185,8 +209,23 @@ const completeRedirect = () => {
     redirectTarget = "/admin/dashboard";
   }
 
+  // Fast-track transition (450ms for checkmark visual feedback)
   setTimeout(async () => {
-    await router.replace(redirectTarget);
+    try {
+      await router.replace(redirectTarget);
+      if (router.currentRoute.value.path === "/admin/login") {
+        window.location.href = redirectTarget;
+      }
+    } catch {
+      window.location.href = redirectTarget;
+    }
+  }, 450);
+
+  // Safety net fallback: if route replacement stalls, force hard redirect
+  setTimeout(() => {
+    if (isLoginSuccess.value) {
+      window.location.href = redirectTarget;
+    }
   }, 1200);
 };
 
@@ -568,9 +607,26 @@ const handleBackToPassword = () => {
             <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div class="bg-emerald-400 h-full rounded-full animate-pulse w-full"></div>
             </div>
+            <button
+              type="button"
+              @click="forceRedirectNow()"
+              class="text-[11px] text-amber-400/80 hover:text-amber-300 underline cursor-pointer pt-1 block mx-auto"
+            >
+              Click here to proceed &rarr;
+            </button>
+            <div class="hidden"><button>
+            </button>
+            </div>
           </div>
         </div>
       </transition>
     </teleport>
+
+    <!-- Staff Security Clearance Gate Modal -->
+    <SecretQuestionModal
+      :model-value="isClearanceModalOpen"
+      @update:model-value="handleClearanceClose"
+      @unlocked="isClearanceModalOpen = false"
+    />
   </div>
 </template>

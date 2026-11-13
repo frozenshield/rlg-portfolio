@@ -43,6 +43,18 @@ const isProcessingCard = ref<boolean>(false);
 const activeProcessingCount = ref<number>(0);
 
 // Intelligent Card Boundary Auto-Crop & Pro Image Enhancement Toggles
+const rawCameraMode = ref<boolean>(
+  typeof localStorage !== "undefined"
+    ? localStorage.getItem("rlg_raw_camera_mode") === "true"
+    : false,
+);
+
+watch(rawCameraMode, (val) => {
+  try {
+    localStorage.setItem("rlg_raw_camera_mode", val ? "true" : "false");
+  } catch {}
+});
+
 const autoEdgeDetect = ref<boolean>(true);
 const enhanceCard = ref<boolean>(true);
 const shadowReduction = ref<boolean>(true);
@@ -133,11 +145,15 @@ const lastBatchSummary = ref<{
   targetFolderUrl: string | null;
   storageMode: string;
   cards: any[];
+  warnings?: string[];
 } | null>(null);
 
 // ─── Google Drive Target Folder Settings Modal ────────────────────────────────
 const isDriveConfigModalOpen = ref<boolean>(false);
 const isSavingDriveConfig = ref<boolean>(false);
+const isTestingDriveConnection = ref<boolean>(false);
+const driveTestResult = ref<{ success: boolean; message?: string; error?: string } | null>(null);
+const copiedSaEmail = ref<boolean>(false);
 const driveConfig = ref<DriveConfig>({
   folder_id: null,
   folder_url: null,
@@ -290,20 +306,25 @@ function detectCardBoundingBox(
     }
   }
 
-  // Find Left Edge: Scan from cx outward to the left (card left border)
-  let bestLeft = Math.floor(sampleW * 0.14);
+  // Find Left Edge: Scan from the outer margin inward (sampleW * 0.04 to sampleW * 0.36)
+  // This locks onto the OUTER card edge instead of the high-contrast inner artwork box!
+  const leftStart = Math.floor(sampleW * 0.04);
+  const leftEnd = Math.floor(sampleW * 0.36);
+  let bestLeft = Math.floor(sampleW * 0.10);
   let maxLeftPeak = 0;
-  for (let x = cx - 25; x >= Math.floor(sampleW * 0.08); x--) {
+  for (let x = leftStart; x <= leftEnd; x++) {
     if (colEdges[x] > maxLeftPeak) {
       maxLeftPeak = colEdges[x];
       bestLeft = x;
     }
   }
 
-  // Find Right Edge: Scan from cx outward to the right (card right border)
-  let bestRight = Math.floor(sampleW * 0.86);
+  // Find Right Edge: Scan from the outer margin inward (sampleW * 0.96 down to sampleW * 0.64)
+  const rightStart = Math.floor(sampleW * 0.96);
+  const rightEnd = Math.floor(sampleW * 0.64);
+  let bestRight = Math.floor(sampleW * 0.90);
   let maxRightPeak = 0;
-  for (let x = cx + 25; x <= Math.floor(sampleW * 0.92); x++) {
+  for (let x = rightStart; x >= rightEnd; x--) {
     if (colEdges[x] > maxRightPeak) {
       maxRightPeak = colEdges[x];
       bestRight = x;
@@ -311,11 +332,10 @@ function detectCardBoundingBox(
   }
 
   let detectedW = bestRight - bestLeft;
-  // If detected width is outside plausible framing (35% - 92% of frame), fall back to center 70%
-  if (detectedW < sampleW * 0.35 || detectedW > sampleW * 0.92) {
-    detectedW = Math.round(sampleW * 0.70);
-    bestLeft = Math.round(cx - detectedW / 2);
-    bestRight = bestLeft + detectedW;
+  // Whole trading card bounds check: card must occupy between 52% and 94% of frame width
+  // If narrower, it means an inner art/text element was picked; fall back to safe reticle crop
+  if (detectedW < sampleW * 0.52 || detectedW > sampleW * 0.94) {
+    return computeDefaultCenterCrop(srcW, srcH);
   }
 
   // Standard Trading Card Proportions (63:88 ~ 0.7159)
@@ -329,8 +349,8 @@ function detectCardBoundingBox(
   let bestTop = Math.round(cy - expectedH / 2);
   let maxJointScore = -1;
 
-  const minTop = Math.max(8, Math.floor(cy - expectedH * 0.68));
-  const maxTop = Math.min(sampleH - expectedH - 8, Math.floor(cy - expectedH * 0.32));
+  const minTop = Math.max(8, Math.floor(cy - expectedH * 0.62));
+  const maxTop = Math.min(sampleH - expectedH - 8, Math.floor(cy - expectedH * 0.38));
 
   for (let top = minTop; top <= maxTop; top++) {
     const bY = top + expectedH;
@@ -356,13 +376,13 @@ function detectCardBoundingBox(
   const bestBottom = bestTop + expectedH;
   const detectedHeight = bestBottom - bestTop;
 
-  if (detectedW > sampleW * 0.25 && detectedHeight > 50) {
+  if (detectedW > sampleW * 0.45 && detectedHeight > 50) {
     const scaleX = srcW / sampleW;
     const scaleY = srcH / sampleH;
 
-    // Add 1.5% outer safety margin so card borders and copyright/set info are never clipped
-    const padX = Math.round(detectedW * 0.015);
-    const padY = Math.round(detectedHeight * 0.015);
+    // Add generous 5.5% outer safety margin so card borders, corners, name, HP, and set info are NEVER clipped
+    const padX = Math.round(detectedW * 0.055);
+    const padY = Math.round(detectedHeight * 0.055);
 
     const sampleLeft = Math.max(0, bestLeft - padX);
     const sampleRight = Math.min(sampleW, bestRight + padX);
@@ -398,8 +418,8 @@ function detectCardBoundingBox(
 }
 
 function computeDefaultCenterCrop(srcW: number, srcH: number) {
-  // Center 72% framing matching the live viewfinder 63:88 reticle
-  const targetW = Math.round(Math.min(srcW * 0.72, srcH * 0.72 * TARGET_RATIO));
+  // Center 84% framing matching the live viewfinder 63:88 reticle (ensures entire physical card with borders is captured without zoom)
+  const targetW = Math.round(Math.min(srcW * 0.84, srcH * 0.84 * TARGET_RATIO));
   const targetH = Math.round(targetW / TARGET_RATIO);
   const cropX = Math.round((srcW - targetW) / 2);
   const cropY = Math.round((srcH - targetH) / 2);
@@ -729,32 +749,19 @@ async function compositeCardOnTemplate(
   if (aspectRatio === "original") {
     ctx.drawImage(templateImg, 0, 0, outW, outH);
   } else {
-    // For 1:1, 3:4, etc.: scale template to fit nicely while preserving pure white background
-    const tplRatio = tplW / tplH;
-    const outRatio = outW / outH;
-    let drawW = outW;
-    let drawH = outH;
-    let drawX = 0;
-    let drawY = 0;
-
-    if (tplRatio > outRatio) {
-      // Template is wider than canvas (e.g. 759x637 into 1000x1000)
-      drawW = outW;
-      drawH = Math.round(outW / tplRatio);
-      drawX = 0;
-      drawY = Math.round((outH - drawH) / 2);
-    } else {
-      drawH = outH;
-      drawW = Math.round(outH * tplRatio);
-      drawX = Math.round((outW - drawW) / 2);
-      drawY = 0;
-    }
+    // Fill the canvas edge-to-edge (cover mode) so background theme is NEVER small, shrunken, or letterboxed!
+    const scaleCover = Math.max(outW / tplW, outH / tplH);
+    const drawW = Math.round(tplW * scaleCover);
+    const drawH = Math.round(tplH * scaleCover);
+    const drawX = Math.round((outW - drawW) / 2);
+    const drawY = Math.round((outH - drawH) / 2);
     ctx.drawImage(templateImg, drawX, drawY, drawW, drawH);
   }
 
   // 3. Calculate center card dimensions based on scale
-  // For 1:1 Shopee square, 76% height = 760px, card width = 544px (leaves optimal padding for RLG & Pokémon logos)
-  const scalePercent = templateScalePercent.value || (aspectRatio === "1:1" ? 76 : 68);
+  // For 1:1 Shopee square, 76% height = 760px; for 63:88 TCG or 3:4 portrait, 82% gives great prominence
+  const defaultScale = aspectRatio === "1:1" ? 76 : (aspectRatio === "63:88" ? 82 : 80);
+  const scalePercent = templateScalePercent.value || defaultScale;
   const scale = scalePercent / 100;
   const maxCardH = Math.round(outH * scale);
   const maxCardW = Math.round(outW * scale);
@@ -850,6 +857,62 @@ async function processAndCompressCard(imageUri: string, customLabel?: string): P
     const img = await loadImageElement(imageUri);
     const srcW = img.naturalWidth || img.width;
     const srcH = img.naturalHeight || img.height;
+
+    // Default Camera Only Mode: Pure raw camera photo without auto-crop, warp, or studio color enhancements
+    if (rawCameraMode.value) {
+      const rawCanvas = document.createElement("canvas");
+      rawCanvas.width = srcW;
+      rawCanvas.height = srcH;
+      const rCtx = rawCanvas.getContext("2d");
+      if (rCtx) {
+        rCtx.imageSmoothingEnabled = true;
+        rCtx.imageSmoothingQuality = "high";
+        rCtx.drawImage(img, 0, 0, srcW, srcH);
+      }
+
+      let finalCanvas: HTMLCanvasElement = rawCanvas;
+      const hasTemplate = applyBrandedTemplate.value;
+      if (hasTemplate) {
+        try {
+          finalCanvas = await compositeCardOnTemplate(rawCanvas, activeTemplateUrl.value);
+        } catch (tmplErr) {
+          console.warn("[FastBatchScanner] Template compositing in raw mode failed:", tmplErr);
+        }
+      }
+
+      let quality = 0.88;
+      let blob = await canvasToBlob(finalCanvas, "image/jpeg", quality);
+      while (blob.size > (MAX_FILE_SIZE_BYTES * 2) && quality > 0.45) {
+        quality = Math.round((quality - 0.05) * 100) / 100;
+        blob = await canvasToBlob(finalCanvas, "image/jpeg", quality);
+      }
+
+      sequenceCounter++;
+      const paddedSeq = String(sequenceCounter).padStart(3, "0");
+      const previewUrl = URL.createObjectURL(blob);
+      const sizeKb = Math.round((blob.size / 1024) * 10) / 10;
+
+      const newItem: StagedCardItem = {
+        id: `card_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        sequence: sequenceCounter,
+        blob,
+        previewUrl,
+        originalRawUrl: imageUri,
+        hasTemplate,
+        filename: customLabel || `card_raw_${paddedSeq}_${Date.now()}.jpg`,
+        sizeBytes: blob.size,
+        sizeKb,
+        quality: Math.round(quality * 100),
+        width: finalCanvas.width,
+        height: finalCanvas.height,
+        capturedAt: new Date().toLocaleTimeString(),
+        status: "staged",
+      };
+
+      stagedQueue.value.unshift(newItem);
+      await triggerHapticTick();
+      return;
+    }
 
     // Create temporary source canvas for edge detection & bounding box computation
     const sourceCanvas = document.createElement("canvas");
@@ -1464,6 +1527,7 @@ async function handleUploadBatch() {
 
   const sharedBatchId = `BATCH-${Date.now().toString(36).toUpperCase()}`;
   const uploadedResults: any[] = [];
+  const batchWarnings: string[] = [];
   let driveUploadedCount = 0;
   let totalKbUploaded = 0;
   let targetFolderUrl: string | null = driveConfig.value.folder_url;
@@ -1516,6 +1580,9 @@ async function handleUploadBatch() {
       if (uploadedCardInfo) {
         uploadedResults.push(uploadedCardInfo);
       }
+      if (batchData?.warnings && Array.isArray(batchData.warnings)) {
+        batchWarnings.push(...batchData.warnings);
+      }
       if (batchData?.drive_uploaded_count > 0) {
         driveUploadedCount += Number(batchData.drive_uploaded_count);
         finalStorageMode = "google_drive";
@@ -1534,6 +1601,11 @@ async function handleUploadBatch() {
       targetFolderUrl,
       storageMode: finalStorageMode,
       cards: uploadedResults,
+      warnings: batchWarnings.length > 0
+        ? batchWarnings
+        : (driveUploadedCount === 0 && cardsToUpload.length > 0
+            ? ["Images saved to server vault, but Google Drive rejected folder access. Please share your folder with the Service Account as Editor."]
+            : []),
     };
 
     uploadCompleted.value = true;
@@ -1574,6 +1646,72 @@ async function fetchDriveConfigAndHistory() {
     }
   } catch (e) {
     console.warn("[FastBatchScanner] Could not load Drive config:", e);
+  }
+}
+
+async function copyServiceAccountEmail() {
+  const email = driveConfig.value.service_account_email || "rlg-shop-ga4@static-balm-445614-v9.iam.gserviceaccount.com";
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(email);
+    } else {
+      const el = document.createElement("textarea");
+      el.value = email;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    copiedSaEmail.value = true;
+    triggerHapticTick();
+    setTimeout(() => {
+      copiedSaEmail.value = false;
+    }, 2500);
+  } catch (err) {
+    console.warn("Could not copy email:", err);
+  }
+}
+
+async function testDriveConnection() {
+  isTestingDriveConnection.value = true;
+  driveTestResult.value = null;
+  try {
+    const payload = {
+      folder_id: driveFolderInput.value.trim() || driveConfig.value.folder_id || null,
+    };
+    let res = await fetch("/api/v1/mobile-tools/cards/test-connection", {
+      method: "POST",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 404) {
+      res = await fetch("/api/mobile-tools/cards/test-connection", {
+        method: "POST",
+        headers: {
+          ...buildAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    const data = await res.json();
+    driveTestResult.value = {
+      success: !!data.success,
+      message: data.message || "Connection verified successfully!",
+      error: data.error || (data.success ? undefined : "Connection failed."),
+    };
+    triggerHapticTick();
+  } catch (err: any) {
+    driveTestResult.value = {
+      success: false,
+      error: err?.message || "Failed to reach server to test connection.",
+    };
+  } finally {
+    isTestingDriveConnection.value = false;
   }
 }
 
@@ -1735,7 +1873,7 @@ onBeforeUnmount(() => {
             @click="changeTemplateAspectRatio('1:1')"
           >
             <span>🛒</span>
-            <span>1:1 Shopee</span>
+            <span>1:1</span>
           </button>
           <button
             type="button"
@@ -1745,9 +1883,35 @@ onBeforeUnmount(() => {
             @click="changeTemplateAspectRatio('63:88')"
           >
             <span>🃏</span>
-            <span>63:88 Card</span>
+            <span>63:88</span>
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+            :class="templateAspectRatio === '3:4' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-slate-300 hover:text-white'"
+            title="3:4 E-Commerce Portrait (900×1200 px)"
+            @click="changeTemplateAspectRatio('3:4')"
+          >
+            <span>📱</span>
+            <span>3:4</span>
           </button>
         </div>
+
+        <!-- Default Camera Mode (Raw Capture / No Auto-Enhance) Toggle -->
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+          :class="
+            rawCameraMode
+              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md shadow-amber-400/20 font-black'
+              : 'bg-slate-800/90 text-slate-300 border-slate-700 hover:border-slate-600'
+          "
+          title="Toggle Default Camera Only: Captures pure unenhanced raw camera photo without auto-cropping or studio color filters"
+          @click="rawCameraMode = !rawCameraMode"
+        >
+          <span>📷</span>
+          <span>Camera: {{ rawCameraMode ? 'Default Raw (No Auto-Enhance)' : 'Auto-Enhance (Studio)' }}</span>
+        </button>
 
         <!-- Branded Background Template Quick Toggle -->
         <button
@@ -2041,10 +2205,29 @@ onBeforeUnmount(() => {
                 <span>✨</span>
                 <span>Card Boundary &amp; Studio Enhancement</span>
               </span>
-              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold">
-                ENHANCED
+              <span
+                class="px-2 py-0.5 rounded font-mono text-[10px] font-bold"
+                :class="rawCameraMode ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400'"
+              >
+                {{ rawCameraMode ? 'RAW CAMERA ONLY' : 'ENHANCED' }}
               </span>
             </div>
+
+            <!-- Default Camera Mode (No Autoenhance) Master Toggle -->
+            <label class="flex items-center justify-between p-2.5 rounded-lg bg-amber-500/15 border border-amber-500/35 cursor-pointer group">
+              <div>
+                <span class="font-black text-amber-300 block text-[11px] flex items-center gap-1.5">
+                  <span>📷</span>
+                  <span>Default Camera Only (Raw Capture)</span>
+                </span>
+                <span class="text-[10px] text-amber-200/90">Pure natural camera shot without auto-crop, warp, or studio color filter</span>
+              </div>
+              <input
+                v-model="rawCameraMode"
+                type="checkbox"
+                class="w-4 h-4 rounded text-amber-500 bg-slate-800 border-amber-500/40 focus:ring-0 cursor-pointer"
+              />
+            </label>
 
             <!-- Auto Edge Detect Toggle -->
             <label class="flex items-center justify-between cursor-pointer group">
@@ -2617,12 +2800,34 @@ onBeforeUnmount(() => {
                 {{
                   lastBatchSummary.storageMode === "google_drive"
                     ? "Google Drive + Server Vault"
-                    : "Server Public Batch Vault"
+                    : "Server Vault (Drive Pending)"
                 }}
               </span>
             </div>
 
-            <div v-if="lastBatchSummary.targetFolderUrl" class="pt-2">
+            <!-- Warning if cards succeeded on local server but could not reach Google Drive -->
+            <div
+              v-if="lastBatchSummary.driveUploadedCount === 0 && lastBatchSummary.totalCards > 0"
+              class="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs space-y-1.5 mt-2"
+            >
+              <div class="font-bold flex items-center gap-1.5 text-amber-300">
+                <span>⚠️</span>
+                <span>Uploaded to Server Vault Only</span>
+              </div>
+              <p class="text-[11px] text-amber-300/90 leading-relaxed">
+                Images are safely stored in your admin server vault, but Google Drive rejected folder access. Please share your Google Drive folder with the Service Account as <strong>Editor</strong>.
+              </p>
+              <button
+                type="button"
+                class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] cursor-pointer inline-flex items-center gap-1"
+                @click="isDriveConfigModalOpen = true"
+              >
+                <span>⚙️ Configure Drive Sharing</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            <div v-if="lastBatchSummary.targetFolderUrl && lastBatchSummary.driveUploadedCount > 0" class="pt-2">
               <a
                 :href="lastBatchSummary.targetFolderUrl"
                 target="_blank"
@@ -3000,10 +3205,42 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <div class="space-y-3">
+          <div class="space-y-3.5">
+            <!-- Step 1: Service Account Share Guide -->
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="font-black text-amber-950 block text-[12px]">
+                    🔑 Step 1: Grant Access to Google Service Account
+                  </span>
+                  <p class="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                    Google Drive requires you to share your target folder with this Service Account email with <strong class="text-amber-950 underline">Editor</strong> permissions:
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 bg-white/90 border border-amber-300 rounded-xl p-2 shadow-xs">
+                <code class="text-[11px] font-mono text-slate-900 break-all flex-1 select-all font-bold">
+                  {{ driveConfig.service_account_email || 'rlg-shop-ga4@static-balm-445614-v9.iam.gserviceaccount.com' }}
+                </code>
+                <button
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] shrink-0 cursor-pointer flex items-center gap-1 shadow-xs transition-colors"
+                  @click="copyServiceAccountEmail"
+                >
+                  <span>{{ copiedSaEmail ? '✓ Copied' : '📋 Copy' }}</span>
+                </button>
+              </div>
+
+              <p class="text-[10px] text-amber-700">
+                In Google Drive: Open folder → Click <strong>Share</strong> → Paste this email → Choose <strong>Editor</strong> → Send.
+              </p>
+            </div>
+
+            <!-- Step 2: Folder Link / ID -->
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">
-                Google Drive Folder URL or Folder ID
+                Step 2: Google Drive Folder URL or Folder ID
               </label>
               <input
                 v-model="driveFolderInput"
@@ -3016,29 +3253,58 @@ onBeforeUnmount(() => {
               </p>
             </div>
 
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">
-                Google OAuth Access Token (Optional Override)
-              </label>
-              <input
-                v-model="driveAccessTokenInput"
-                type="password"
-                placeholder="ya29.a0AfH6SM... (Leave blank to use server .env / Service Account)"
-                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
-              />
+            <!-- Test Connection Button -->
+            <div class="pt-1">
+              <button
+                type="button"
+                :disabled="isTestingDriveConnection"
+                class="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold cursor-pointer flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                @click="testDriveConnection"
+              >
+                <span>{{ isTestingDriveConnection ? '⏳ Testing Connection...' : '🔌 Test Folder Connection & Permissions' }}</span>
+              </button>
             </div>
 
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">
-                Service Account JSON (Optional Override)
-              </label>
-              <textarea
-                v-model="driveServiceAccountInput"
-                rows="3"
-                placeholder='{"type": "service_account", "client_email": "...", "private_key": "..."}'
-                class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
-              ></textarea>
+            <!-- Test Connection Result Feedback -->
+            <div
+              v-if="driveTestResult"
+              class="p-3 rounded-xl text-xs font-bold"
+              :class="driveTestResult.success ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-rose-50 border border-rose-200 text-rose-800'"
+            >
+              <span v-if="driveTestResult.success">✓ {{ driveTestResult.message }}</span>
+              <span v-else>⚠️ {{ driveTestResult.error }}</span>
             </div>
+
+            <details class="text-xs text-slate-600">
+              <summary class="cursor-pointer font-bold text-slate-500 hover:text-slate-800">
+                Advanced Credentials Override (Optional)
+              </summary>
+              <div class="space-y-3 pt-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">
+                    Google OAuth Access Token (Optional Override)
+                  </label>
+                  <input
+                    v-model="driveAccessTokenInput"
+                    type="password"
+                    placeholder="ya29.a0AfH6SM... (Leave blank to use server .env / Service Account)"
+                    class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">
+                    Service Account JSON (Optional Override)
+                  </label>
+                  <textarea
+                    v-model="driveServiceAccountInput"
+                    rows="2"
+                    placeholder='{"type": "service_account", "client_email": "...", "private_key": "..."}'
+                    class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
+                  ></textarea>
+                </div>
+              </div>
+            </details>
 
             <div
               v-if="driveConfigFeedback"

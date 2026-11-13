@@ -145,6 +145,10 @@ export const useThemeStore = defineStore("app-theme", () => {
     return activeThemeMeta.value.filterMode;
   });
 
+  const isDark = computed<boolean>(() => {
+    return activeTheme.value !== "light" && activeTheme.value !== "playtime";
+  });
+
   const applyThemeToDOM = (theme: ThemeMode) => {
     if (typeof document !== "undefined") {
       document.documentElement.setAttribute("data-theme", theme);
@@ -247,6 +251,7 @@ export const useThemeStore = defineStore("app-theme", () => {
     adminForcedTheme,
     enabledStorefrontThemes,
     activeTheme,
+    isDark,
     activeThemeMeta,
     activeFilterMode,
     setTheme,

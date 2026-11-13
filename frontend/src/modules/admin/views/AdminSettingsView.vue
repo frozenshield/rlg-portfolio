@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useAdminStore } from "../admin.store";
 import type { StaffMember } from "../admin.types";
 import AdminThemeSettings from "../components/AdminThemeSettings.vue";
+import { resolveApiUrl } from "@/shared/utils/api";
 import {
   deriveUserTotpSecret,
   buildGoogleAuthenticatorQr,
@@ -31,19 +32,32 @@ const paymentError = ref("");
 
 // Map PrimeIcons / codes → friendly emoji
 const gatewayEmoji: Record<string, string> = {
+  paymongo_qrph: "⚡",
+  paymongo: "⚡",
+  paymongo_bpi: "🏛️",
+  bpi: "🏛️",
+  paymongo_ubp: "🟧",
+  ubp: "🟧",
+  unionbank: "🟧",
+  maribank: "🏦",
+  gotyme: "💳",
   gcash: "📱",
+  maya: "🟣",
+  paymaya: "🟣",
   stripe: "🌐",
   paypal: "🅿️",
-  paymaya: "💳",
   visa_master_card: "💳",
   cod: "💵",
 };
 
 const gatewayEmoji2: Record<string, string> = {
-  "pi pi-mobile": "📱",
+  "pi pi-bolt": "⚡",
+  "pi pi-building": "🏦",
   "pi pi-credit-card": "💳",
+  "pi pi-mobile": "📱",
+  "pi pi-wallet": "🟣",
+  "pi pi-qrcode": "⚡",
   "pi pi-paypal": "🅿️",
-  "pi pi-wallet": "💳",
   "pi pi-money-bill": "💵",
 };
 
@@ -59,7 +73,7 @@ const fetchPaymentMethods = async () => {
   isLoadingPayments.value = true;
   paymentError.value = "";
   try {
-    const res = await fetch("/api/ref-payment-methods?status=all");
+    const res = await fetch(resolveApiUrl("/ref-payment-methods?status=all"));
     if (!res.ok) throw new Error("Failed to load payment methods");
     const data: PaymentMethod[] = await res.json();
     paymentMethods.value = data;
@@ -87,7 +101,7 @@ const saveGatewaySettings = async () => {
 
     await Promise.all(
       changed.map((m) =>
-        fetch(`/api/ref-payment-methods/${m.id}/status`, {
+        fetch(resolveApiUrl(`/ref-payment-methods/${m.id}/status`), {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -110,7 +124,7 @@ const saveGatewaySettings = async () => {
 };
 
 const activeTab = ref<
-  "staff" | "payments" | "shipping" | "localization" | "analytics" | "themes" | "security"
+  "staff" | "users" | "payments" | "shipping" | "localization" | "analytics" | "themes" | "security"
 >("staff");
 const savedFeedback = ref("");
 const staffError = ref("");
@@ -562,6 +576,7 @@ const toggleRuleStatus = async (rule: ShippingTaxRule) => {
       rule.is_active = Boolean(json.data.is_active);
       showFeedback(`"${rule.name}" is now ${rule.is_active ? "Active" : "Inactive"}.`);
       await fetchShippingRules();
+  fetchCarriers();
     }
   } catch (e) {
     console.error("toggleRuleStatus error:", e);
@@ -687,6 +702,201 @@ const deleteRule = async (rule: ShippingTaxRule) => {
     }
   } catch (e) {
     console.error("deleteRule error:", e);
+  }
+};
+
+
+// ─── Shipping Couriers & Logistics Fleet (ref_shipping_carrier) ───────────
+export interface ShippingCarrierItem {
+  id: number;
+  name: string;
+  code: string;
+  short_name: string;
+  tracking_url_template: string | null;
+  is_active: boolean;
+}
+
+const shippingCarriers = ref<ShippingCarrierItem[]>([]);
+const isLoadingCarriers = ref(false);
+const carrierError = ref("");
+
+// Add Courier Modal State
+const isAddCarrierOpen = ref(false);
+const newCarrierName = ref("");
+const newCarrierCode = ref("");
+const newCarrierShortName = ref("");
+const newCarrierTrackingUrl = ref("");
+const newCarrierActive = ref(true);
+const isSubmittingCarrier = ref(false);
+
+// Edit Courier Modal State
+const isEditCarrierOpen = ref(false);
+const editingCarrier = ref<ShippingCarrierItem | null>(null);
+const editCarrierName = ref("");
+const editCarrierCode = ref("");
+const editCarrierShortName = ref("");
+const editCarrierTrackingUrl = ref("");
+const editCarrierActive = ref(true);
+const isUpdatingCarrier = ref(false);
+
+const fetchCarriers = async () => {
+  isLoadingCarriers.value = true;
+  carrierError.value = "";
+  try {
+    const res = await fetch(resolveApiUrl("/api/shipping-carriers?all=1"));
+    if (!res.ok) throw new Error("Failed to load carriers");
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      shippingCarriers.value = json.data;
+    }
+  } catch (e) {
+    console.error("fetchCarriers error:", e);
+    carrierError.value = "Could not load shipping carriers from server.";
+  } finally {
+    isLoadingCarriers.value = false;
+  }
+};
+
+const toggleCarrierStatus = async (carrier: ShippingCarrierItem) => {
+  try {
+    const res = await fetch(resolveApiUrl(`/api/shipping-carriers/${carrier.id}/toggle`), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to toggle carrier status");
+    const json = await res.json();
+    if (json.success && json.data) {
+      carrier.is_active = Boolean(json.data.is_active);
+      showFeedback(`Courier "${carrier.name}" is now ${carrier.is_active ? "Active" : "Disabled"}.`);
+    }
+  } catch (e) {
+    console.error("toggleCarrierStatus error:", e);
+    showFeedback("Failed to update courier status.");
+  }
+};
+
+const addCarrier = async () => {
+  carrierError.value = "";
+  if (!newCarrierName.value.trim() || !newCarrierCode.value.trim()) {
+    carrierError.value = "Please provide both Courier Name and Unique Code.";
+    return;
+  }
+
+  isSubmittingCarrier.value = true;
+  try {
+    const payload = {
+      name: newCarrierName.value.trim(),
+      code: newCarrierCode.value.trim().toLowerCase(),
+      short_name: newCarrierShortName.value.trim() || newCarrierName.value.trim(),
+      tracking_url_template: newCarrierTrackingUrl.value.trim() || null,
+      is_active: newCarrierActive.value,
+    };
+
+    const res = await fetch(resolveApiUrl("/api/shipping-carriers"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      carrierError.value = json?.message || "Failed to create courier.";
+      return;
+    }
+
+    await fetchCarriers();
+    isAddCarrierOpen.value = false;
+    newCarrierName.value = "";
+    newCarrierCode.value = "";
+    newCarrierShortName.value = "";
+    newCarrierTrackingUrl.value = "";
+    newCarrierActive.value = true;
+    showFeedback(`Courier "${json.data?.name}" added successfully!`);
+  } catch (e) {
+    console.error("addCarrier error:", e);
+    carrierError.value = "Server error while creating courier.";
+  } finally {
+    isSubmittingCarrier.value = false;
+  }
+};
+
+const openEditCarrier = (carrier: ShippingCarrierItem) => {
+  editingCarrier.value = carrier;
+  editCarrierName.value = carrier.name;
+  editCarrierCode.value = carrier.code;
+  editCarrierShortName.value = carrier.short_name || carrier.name;
+  editCarrierTrackingUrl.value = carrier.tracking_url_template || "";
+  editCarrierActive.value = Boolean(carrier.is_active);
+  isEditCarrierOpen.value = true;
+};
+
+const saveEditCarrier = async () => {
+  if (!editingCarrier.value) return;
+  isUpdatingCarrier.value = true;
+  carrierError.value = "";
+  try {
+    const payload = {
+      name: editCarrierName.value.trim(),
+      code: editCarrierCode.value.trim().toLowerCase(),
+      short_name: editCarrierShortName.value.trim() || editCarrierName.value.trim(),
+      tracking_url_template: editCarrierTrackingUrl.value.trim() || null,
+      is_active: editCarrierActive.value,
+    };
+
+    const res = await fetch(resolveApiUrl(`/api/shipping-carriers/${editingCarrier.value.id}`), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    if (res.ok) {
+      await fetchCarriers();
+      isEditCarrierOpen.value = false;
+      showFeedback(`Courier "${payload.name}" updated successfully!`);
+    } else {
+      carrierError.value = json?.message || "Failed to update courier.";
+    }
+  } catch (e) {
+    console.error("saveEditCarrier error:", e);
+    carrierError.value = "Failed to update courier.";
+  } finally {
+    isUpdatingCarrier.value = false;
+  }
+};
+
+const deleteCarrier = async (carrier: ShippingCarrierItem) => {
+  if (!confirm(`Are you sure you want to delete the courier "${carrier.name}" (${carrier.code})?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(resolveApiUrl(`/api/shipping-carriers/${carrier.id}`), {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const json = await res.json();
+    if (res.ok && json.success) {
+      await fetchCarriers();
+      showFeedback(`Courier "${carrier.name}" deleted successfully.`);
+    } else {
+      showFeedback(json?.message || "Cannot delete courier.");
+    }
+  } catch (e) {
+    console.error("deleteCarrier error:", e);
+    showFeedback("Failed to delete courier.");
   }
 };
 
@@ -850,12 +1060,14 @@ onMounted(() => {
   fetchStaff();
   fetchPaymentMethods();
   fetchShippingRules();
+  fetchCarriers();
   fetchCurrencies();
   fetchWeightUnits();
   fetchLocalization();
   fetchGa4Telemetry();
   fetchAdmin2faStatus();
   fetchSecretQuestions();
+  fetchAdminUsers();
 });
 
 const addStaff = async () => {
@@ -1015,6 +1227,232 @@ const showFeedback = (msg: string) => {
   }, 3500);
 };
 
+// ─── Users & Collectors Management (CRUD) ──────────────────────────────────
+export interface AdminManagedUser {
+  id: number;
+  name: string;
+  email: string;
+  user_type: string;
+  is_vip: boolean;
+  wallet_balance: number;
+  held_balance: number;
+  phone: string;
+  avatar: string | null;
+  orders_count: number;
+  created_at: string;
+}
+
+const managedUsers = ref<AdminManagedUser[]>([]);
+const isLoadingUsers = ref(false);
+const usersError = ref("");
+const searchUserQuery = ref("");
+const filterUserRole = ref("all");
+const isAddUserOpen = ref(false);
+const isEditUserOpen = ref(false);
+const isSubmittingUser = ref(false);
+
+const userForm = ref({
+  id: 0,
+  name: "",
+  email: "",
+  password: "",
+  user_type: "customer",
+  is_vip: false,
+  phone: "",
+  wallet_balance: 0,
+});
+
+const filteredManagedUsers = computed(() => {
+  let list = managedUsers.value;
+  if (searchUserQuery.value.trim()) {
+    const q = searchUserQuery.value.toLowerCase().trim();
+    list = list.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        (u.phone && u.phone.toLowerCase().includes(q)),
+    );
+  }
+  if (filterUserRole.value !== "all") {
+    list = list.filter((u) => u.user_type === filterUserRole.value);
+  }
+  return list;
+});
+
+const fetchAdminUsers = async () => {
+  isLoadingUsers.value = true;
+  usersError.value = "";
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token") || "";
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(resolveApiUrl("/admin/users?per_page=100"), { headers });
+    if (!res.ok) throw new Error("Failed to load users list");
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      managedUsers.value = json.data;
+    }
+  } catch (e: any) {
+    console.error("fetchAdminUsers error:", e);
+    usersError.value = e?.message || "Failed to load users from server.";
+  } finally {
+    isLoadingUsers.value = false;
+  }
+};
+
+const openAddUser = () => {
+  userForm.value = {
+    id: 0,
+    name: "",
+    email: "",
+    password: "",
+    user_type: "customer",
+    is_vip: false,
+    phone: "",
+    wallet_balance: 0,
+  };
+  usersError.value = "";
+  isAddUserOpen.value = true;
+};
+
+const openEditUser = (user: AdminManagedUser) => {
+  userForm.value = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    password: "",
+    user_type: user.user_type || "customer",
+    is_vip: Boolean(user.is_vip),
+    phone: user.phone || "",
+    wallet_balance: user.wallet_balance || 0,
+  };
+  usersError.value = "";
+  isEditUserOpen.value = true;
+};
+
+const handleSaveNewUser = async () => {
+  if (!userForm.value.name.trim() || !userForm.value.email.trim() || !userForm.value.password.trim()) {
+    usersError.value = "Name, email, and password (min 6 characters) are required.";
+    return;
+  }
+  isSubmittingUser.value = true;
+  usersError.value = "";
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token") || "";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(resolveApiUrl("/admin/users"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(userForm.value),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to create user.");
+    isAddUserOpen.value = false;
+    showFeedback(`User ${userForm.value.name} created successfully!`);
+    await fetchAdminUsers();
+  } catch (e: any) {
+    usersError.value = e?.message || "Server error while saving user.";
+  } finally {
+    isSubmittingUser.value = false;
+  }
+};
+
+const handleUpdateUser = async () => {
+  if (!userForm.value.name.trim() || !userForm.value.email.trim()) {
+    usersError.value = "Name and email are required.";
+    return;
+  }
+  isSubmittingUser.value = true;
+  usersError.value = "";
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token") || "";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const payload: any = {
+      name: userForm.value.name,
+      email: userForm.value.email,
+      user_type: userForm.value.user_type,
+      is_vip: userForm.value.is_vip,
+      phone: userForm.value.phone,
+      wallet_balance: Number(userForm.value.wallet_balance) || 0,
+    };
+    if (userForm.value.password.trim()) {
+      payload.password = userForm.value.password.trim();
+    }
+
+    const res = await fetch(resolveApiUrl(`/admin/users/${userForm.value.id}`), {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to update user.");
+    isEditUserOpen.value = false;
+    showFeedback(`User ${userForm.value.name} updated successfully!`);
+    await fetchAdminUsers();
+  } catch (e: any) {
+    usersError.value = e?.message || "Server error while updating user.";
+  } finally {
+    isSubmittingUser.value = false;
+  }
+};
+
+const handleDeleteUser = async (user: AdminManagedUser) => {
+  if (!confirm(`Are you sure you want to delete user "${user.name}" (${user.email})? This action cannot be undone.`)) {
+    return;
+  }
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token") || "";
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(resolveApiUrl(`/admin/users/${user.id}`), {
+      method: "DELETE",
+      headers,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed to delete user.");
+    showFeedback(`User ${user.name} removed successfully.`);
+    await fetchAdminUsers();
+  } catch (e: any) {
+    showFeedback(e?.message || "Could not delete user.");
+  }
+};
+
+const handleToggleUserVip = async (user: AdminManagedUser) => {
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token") || "";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const newVip = !user.is_vip;
+    const res = await fetch(resolveApiUrl(`/admin/users/${user.id}`), {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ is_vip: newVip }),
+    });
+    if (res.ok) {
+      user.is_vip = newVip;
+      showFeedback(`Updated ${user.name} VIP status to: ${newVip ? "VIP Member 👑" : "Standard"}`);
+    }
+  } catch (e) {
+    console.error("Failed to toggle VIP status", e);
+  }
+};
+
 // ─── TAB NAVIGATION HORIZONTAL SCROLL ────────────────────────────────────────
 const settingsTabBarRef = ref<HTMLElement | null>(null);
 
@@ -1074,6 +1512,19 @@ const scrollSettingsTabBar = (direction: "left" | "right") => {
             @click="activeTab = 'staff'"
           >
             👥 Staff &amp; RBAC
+          </button>
+          <button
+            type="button"
+            class="px-3.5 py-2 min-h-[40px] rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+            :class="
+              activeTab === 'users'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            "
+            @click="activeTab = 'users'"
+          >
+            <span>👤</span>
+            <span>Users &amp; Collectors</span>
           </button>
           <button
             type="button"
@@ -1476,7 +1927,25 @@ const scrollSettingsTabBar = (direction: "left" | "right") => {
                     : 'bg-white border border-slate-200'
                 "
               >
-                {{ getGatewayIcon(method) }}
+                <img
+                  v-if="method.code === 'paymongo_bpi' || method.code === 'bpi'"
+                  src="/images/gateways/bpi-logo.png"
+                  alt="BPI"
+                  class="w-8 h-8 object-contain rounded"
+                />
+                <img
+                  v-else-if="method.code === 'paymongo_ubp' || method.code === 'ubp' || method.code === 'unionbank'"
+                  src="/images/gateways/ubp-logo.png"
+                  alt="UnionBank"
+                  class="w-8 h-8 object-contain rounded"
+                />
+                <img
+                  v-else-if="method.code === 'paymongo_qrph' || method.code === 'paymongo'"
+                  src="/images/gateways/qrph-logo.png"
+                  alt="QR Ph"
+                  class="w-8 h-8 object-contain rounded p-0.5"
+                />
+                <span v-else>{{ getGatewayIcon(method) }}</span>
               </div>
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -1810,7 +2279,200 @@ const scrollSettingsTabBar = (direction: "left" | "right") => {
           </table>
         </div>
       </div>
-    </div>
+    
+      <!-- Shipping Couriers & Logistics Fleet Management (ref_shipping_carrier) -->
+      <div class="mt-8 pt-6 border-t border-slate-200/80 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <span>🚚</span>
+              <span>Shipping Couriers &amp; Logistics Fleet</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono font-bold lowercase border border-slate-200">
+                ref_shipping_carrier
+              </span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Manage supported parcel couriers for checkout and dispatch. Toggle status to instantly show/hide at checkout, or configure tracking URL templates.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Refresh Couriers"
+              :disabled="isLoadingCarriers"
+              @click="fetchCarriers"
+            >
+              <svg
+                class="w-4 h-4"
+                :class="{ 'animate-spin': isLoadingCarriers }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+              @click="isAddCarrierOpen = true"
+            >
+              <span>+ Add New Courier</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Couriers error alert -->
+        <div
+          v-if="carrierError"
+          class="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center justify-between"
+        >
+          <span>{{ carrierError }}</span>
+          <button
+            type="button"
+            class="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+            @click="carrierError = ''"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Courier list table -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
+                  <th class="p-4">Courier Name &amp; Code</th>
+                  <th class="p-4">Display / Short Name</th>
+                  <th class="p-4">Tracking URL Format</th>
+                  <th class="p-4 text-center">Status Toggle</th>
+                  <th class="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <!-- Loading -->
+                <tr v-if="isLoadingCarriers">
+                  <td colspan="5" class="p-8 text-center text-slate-400">
+                    <div class="flex items-center justify-center gap-2">
+                      <span class="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+                      <span>Loading logistics couriers...</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Empty -->
+                <tr v-else-if="shippingCarriers.length === 0">
+                  <td colspan="5" class="p-8 text-center text-slate-400">
+                    No shipping couriers configured yet. Click "+ Add New Courier" above to register one.
+                  </td>
+                </tr>
+
+                <!-- Rows -->
+                <tr
+                  v-for="carrier in shippingCarriers"
+                  :key="carrier.id"
+                  class="hover:bg-slate-50/60 transition-colors"
+                >
+                  <!-- Col 1: Courier Name & Code -->
+                  <td class="p-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
+                        📦
+                      </div>
+                      <div>
+                        <div class="font-bold text-slate-900">{{ carrier.name }}</div>
+                        <div class="font-mono text-[10px] text-slate-400">
+                          code: <span class="text-indigo-600 font-semibold">{{ carrier.code }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Col 2: Short Name -->
+                  <td class="p-4 font-semibold text-slate-700">
+                    {{ carrier.short_name || carrier.name }}
+                  </td>
+
+                  <!-- Col 3: Tracking URL Template -->
+                  <td class="p-4 max-w-xs">
+                    <span
+                      v-if="carrier.tracking_url_template"
+                      class="font-mono text-[10px] text-slate-500 break-all bg-slate-50 px-2 py-1 rounded border border-slate-200 block"
+                      :title="carrier.tracking_url_template"
+                    >
+                      {{ carrier.tracking_url_template }}
+                    </span>
+                    <span v-else class="text-slate-400 italic text-[11px]">No tracking URL configured</span>
+                  </td>
+
+                  <!-- Col 4: Status Toggle -->
+                  <td class="p-4 text-center">
+                    <div class="inline-flex items-center gap-2.5">
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          class="sr-only peer"
+                          :checked="carrier.is_active"
+                          @change="toggleCarrierStatus(carrier)"
+                        />
+                        <div
+                          class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"
+                        />
+                      </label>
+                      <span
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                        :class="
+                          carrier.is_active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
+                        "
+                      >
+                        {{ carrier.is_active ? "Active" : "Disabled" }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Col 5: Actions -->
+                  <td class="p-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                        @click="openEditCarrier(carrier)"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="text-xs font-bold text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="Delete Courier"
+                        @click="deleteCarrier(carrier)"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+</div>
 
     <!-- TAB 4: Store Localization -->
     <div v-else-if="activeTab === 'localization'" class="space-y-4">
@@ -2499,6 +3161,445 @@ GA4_SERVICE_ACCOUNT_PATH=storage/ga4-service-account.json</pre>
         </div>
       </div>
     </div>
+
+    <!-- TAB: Users & Collectors Management (CRUD) -->
+    <div v-if="activeTab === 'users'" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <span>Registered Users &amp; Collector Profiles</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700">
+              {{ managedUsers.length }} Accounts
+            </span>
+          </h2>
+          <p class="text-xs text-slate-500">
+            Create, search, inspect collector balances, grant VIP memberships, and manage user roles.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+            @click="openAddUser"
+          >
+            <span>+ Create New User</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters & Search Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="relative w-full sm:w-80">
+          <input
+            v-model="searchUserQuery"
+            type="text"
+            placeholder="Search by name, email, or phone..."
+            class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-800 focus:bg-white transition-all"
+          />
+          <span class="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+          <button
+            v-if="searchUserQuery"
+            type="button"
+            class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs"
+            @click="searchUserQuery = ''"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <label class="text-[11px] font-bold text-slate-500 whitespace-nowrap">Filter Role:</label>
+          <select
+            v-model="filterUserRole"
+            class="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold focus:outline-none focus:border-slate-800"
+          >
+            <option value="all">All Roles</option>
+            <option value="customer">Customers</option>
+            <option value="staff">Staff Members</option>
+            <option value="admin">Administrators</option>
+          </select>
+
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600 flex items-center gap-1"
+            title="Refresh Users"
+            @click="fetchAdminUsers"
+          >
+            <span>🔄</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Error / Loading Alerts -->
+      <div
+        v-if="usersError"
+        class="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center justify-between"
+      >
+        <span>⚠️ {{ usersError }}</span>
+        <button type="button" class="text-rose-500 font-bold" @click="usersError = ''">✕</button>
+      </div>
+
+      <!-- Users Table -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50/80 text-slate-500 uppercase tracking-wider font-extrabold border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3">Collector / User</th>
+                <th class="px-4 py-3">Role</th>
+                <th class="px-4 py-3">VIP Status</th>
+                <th class="px-4 py-3">Spendable Vault</th>
+                <th class="px-4 py-3">Orders</th>
+                <th class="px-4 py-3">Phone</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr
+                v-for="user in filteredManagedUsers"
+                :key="user.id"
+                class="hover:bg-slate-50/80 transition-colors"
+              >
+                <!-- User Info -->
+                <td class="px-4 py-3.5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                      {{ user.name?.charAt(0)?.toUpperCase() || 'U' }}
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>{{ user.name }}</span>
+                        <span v-if="user.is_vip" class="text-xs" title="VIP Collector">👑</span>
+                      </div>
+                      <div class="text-[11px] text-slate-500 font-mono">{{ user.email }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Role -->
+                <td class="px-4 py-3.5">
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                    :class="{
+                      'bg-purple-100 text-purple-700': user.user_type === 'admin',
+                      'bg-blue-100 text-blue-700': user.user_type === 'staff',
+                      'bg-slate-100 text-slate-700': user.user_type === 'customer' || !user.user_type,
+                    }"
+                  >
+                    {{ user.user_type || 'customer' }}
+                  </span>
+                </td>
+
+                <!-- VIP Toggle -->
+                <td class="px-4 py-3.5">
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer border flex items-center gap-1"
+                    :class="
+                      user.is_vip
+                        ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs hover:bg-amber-100'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'
+                    "
+                    title="Click to toggle VIP status"
+                    @click="handleToggleUserVip(user)"
+                  >
+                    <span>{{ user.is_vip ? '👑 VIP Member' : 'Standard' }}</span>
+                  </button>
+                </td>
+
+                <!-- Spendable Balance -->
+                <td class="px-4 py-3.5 font-mono font-bold" :class="user.wallet_balance > 0 ? 'text-emerald-600' : 'text-slate-400'">
+                  ₱{{ (Number(user.wallet_balance) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                </td>
+
+                <!-- Orders Count -->
+                <td class="px-4 py-3.5">
+                  <span class="font-bold text-slate-700">{{ user.orders_count || 0 }}</span>
+                  <span class="text-[10px] text-slate-400 ml-1">orders</span>
+                </td>
+
+                <!-- Phone -->
+                <td class="px-4 py-3.5 text-slate-600 font-mono text-[11px]">
+                  {{ user.phone || '—' }}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-4 py-3.5 text-right">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <button
+                      type="button"
+                      class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] cursor-pointer transition-colors"
+                      @click="openEditUser(user)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[11px] cursor-pointer transition-colors"
+                      @click="handleDeleteUser(user)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-if="filteredManagedUsers.length === 0 && !isLoadingUsers">
+                <td colspan="7" class="px-4 py-8 text-center text-slate-400 italic">
+                  No users found matching current filters.
+                </td>
+              </tr>
+              <tr v-if="isLoadingUsers">
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                  Loading user records...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <teleport to="body">
+      <div
+        v-if="isAddUserOpen"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+      >
+        <div class="bg-white text-slate-900 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl border border-slate-200 font-display [color-scheme:light]">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Create New User</h3>
+              <p class="text-xs text-slate-500">Add a customer or admin/staff account</p>
+            </div>
+            <button
+              type="button"
+              class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors"
+              @click="isAddUserOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div v-if="usersError" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+            {{ usersError }}
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Full Name *</label>
+              <input
+                v-model="userForm.name"
+                type="text"
+                placeholder="e.g. Ren Santos"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Email Address *</label>
+              <input
+                v-model="userForm.email"
+                type="email"
+                placeholder="user@example.com"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Password *</label>
+              <input
+                v-model="userForm.password"
+                type="password"
+                placeholder="Minimum 6 characters"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
+              <input
+                v-model="userForm.phone"
+                type="text"
+                placeholder="+63 917 123 4567"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Account Role</label>
+                <select
+                  v-model="userForm.user_type"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+                >
+                  <option value="customer">Customer</option>
+                  <option value="staff">Staff Member</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">VIP Tier Status</label>
+                <div class="pt-1.5 flex items-center gap-2">
+                  <input
+                    id="add_is_vip"
+                    v-model="userForm.is_vip"
+                    type="checkbox"
+                    class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <label for="add_is_vip" class="text-xs font-bold text-slate-700 cursor-pointer">
+                    👑 VIP Member
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors"
+              @click="isAddUserOpen = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs cursor-pointer transition-colors disabled:opacity-50"
+              :disabled="isSubmittingUser"
+              @click="handleSaveNewUser"
+            >
+              {{ isSubmittingUser ? 'Saving...' : 'Create User' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Edit User Modal -->
+    <teleport to="body">
+      <div
+        v-if="isEditUserOpen"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+      >
+        <div class="bg-white text-slate-900 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl border border-slate-200 font-display [color-scheme:light]">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Edit User Account</h3>
+              <p class="text-xs text-slate-500">Update profile details, VIP tier, role, and balance</p>
+            </div>
+            <button
+              type="button"
+              class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors"
+              @click="isEditUserOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div v-if="usersError" class="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
+            {{ usersError }}
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Full Name *</label>
+              <input
+                v-model="userForm.name"
+                type="text"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Email Address *</label>
+              <input
+                v-model="userForm.email"
+                type="email"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Change Password (optional)</label>
+              <input
+                v-model="userForm.password"
+                type="password"
+                placeholder="Leave blank to keep unchanged"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Phone Number</label>
+              <input
+                v-model="userForm.phone"
+                type="text"
+                placeholder="+63 917 123 4567"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Account Role</label>
+                <select
+                  v-model="userForm.user_type"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+                >
+                  <option value="customer">Customer</option>
+                  <option value="staff">Staff Member</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Spendable Balance (₱)</label>
+                <input
+                  v-model="userForm.wallet_balance"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+                />
+              </div>
+            </div>
+
+            <div class="pt-1.5 flex items-center gap-2">
+              <input
+                id="edit_is_vip"
+                v-model="userForm.is_vip"
+                type="checkbox"
+                class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+              />
+              <label for="edit_is_vip" class="text-xs font-bold text-slate-700 cursor-pointer">
+                👑 VIP Member (Access to VIP products &amp; privileges)
+              </label>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors"
+              @click="isEditUserOpen = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs cursor-pointer transition-colors disabled:opacity-50"
+              :disabled="isSubmittingUser"
+              @click="handleUpdateUser"
+            >
+              {{ isSubmittingUser ? 'Saving Changes...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
 
     <!-- Add Staff Modal -->
     <teleport to="body">
@@ -3194,5 +4295,208 @@ GA4_SERVICE_ACCOUNT_PATH=storage/ga4-service-account.json</pre>
         </div>
       </div>
     </teleport>
+    <!-- Add Shipping Courier Modal -->
+    <teleport to="body">
+      <div
+        v-if="isAddCarrierOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-display animate-fade-in"
+      >
+        <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Add New Shipping Courier</h3>
+              <p class="text-xs text-slate-500">Register a logistics courier into ref_shipping_carrier.</p>
+            </div>
+            <button
+              type="button"
+              class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors text-xs font-bold"
+              @click="isAddCarrierOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Courier Full Name *</label>
+              <input
+                v-model="newCarrierName"
+                type="text"
+                placeholder="e.g. J&T Express Philippines"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Unique Code *</label>
+                <input
+                  v-model="newCarrierCode"
+                  type="text"
+                  placeholder="e.g. jnt_ph"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-slate-800"
+                />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Short / Display Name</label>
+                <input
+                  v-model="newCarrierShortName"
+                  type="text"
+                  placeholder="e.g. J&T Express"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Tracking URL Template (Optional)</label>
+              <input
+                v-model="newCarrierTrackingUrl"
+                type="text"
+                placeholder="https://tracker.com/search?no={tracking}"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-slate-800"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">Use {tracking} as the placeholder for parcel waybill number.</p>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <input
+                id="carrier-active-chk"
+                v-model="newCarrierActive"
+                type="checkbox"
+                class="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-800"
+              />
+              <label for="carrier-active-chk" class="text-xs font-bold text-slate-700 cursor-pointer">
+                Enable courier immediately on checkout
+              </label>
+            </div>
+
+            <div v-if="carrierError" class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs">
+              {{ carrierError }}
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-colors"
+                @click="isAddCarrierOpen = false"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                :disabled="isSubmittingCarrier"
+                class="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                @click="addCarrier"
+              >
+                <span v-if="isSubmittingCarrier" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>{{ isSubmittingCarrier ? "Saving..." : "Add Courier" }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Edit Shipping Courier Modal -->
+    <teleport to="body">
+      <div
+        v-if="isEditCarrierOpen && editingCarrier"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-display animate-fade-in"
+      >
+        <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Edit Shipping Courier</h3>
+              <p class="text-xs text-slate-500">Update courier #{{ editingCarrier.id }} details.</p>
+            </div>
+            <button
+              type="button"
+              class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors text-xs font-bold"
+              @click="isEditCarrierOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Courier Full Name *</label>
+              <input
+                v-model="editCarrierName"
+                type="text"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+              />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Unique Code *</label>
+                <input
+                  v-model="editCarrierCode"
+                  type="text"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-slate-800"
+                />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-800 mb-1">Short / Display Name</label>
+                <input
+                  v-model="editCarrierShortName"
+                  type="text"
+                  class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-medium focus:outline-none focus:border-slate-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-800 mb-1">Tracking URL Template (Optional)</label>
+              <input
+                v-model="editCarrierTrackingUrl"
+                type="text"
+                placeholder="https://tracker.com/search?no={tracking}"
+                class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-mono font-medium focus:outline-none focus:border-slate-800"
+              />
+              <p class="text-[10px] text-slate-400 mt-1">Use {tracking} as the placeholder for parcel waybill number.</p>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <input
+                id="edit-carrier-active-chk"
+                v-model="editCarrierActive"
+                type="checkbox"
+                class="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-800"
+              />
+              <label for="edit-carrier-active-chk" class="text-xs font-bold text-slate-700 cursor-pointer">
+                Courier is active and selectable by customers
+              </label>
+            </div>
+
+            <div v-if="carrierError" class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs">
+              {{ carrierError }}
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-colors"
+                @click="isEditCarrierOpen = false"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                :disabled="isUpdatingCarrier"
+                class="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                @click="saveEditCarrier"
+              >
+                <span v-if="isUpdatingCarrier" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>{{ isUpdatingCarrier ? "Saving Changes..." : "Save Changes" }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
   </div>
 </template>

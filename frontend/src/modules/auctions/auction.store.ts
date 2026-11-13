@@ -265,6 +265,58 @@ export const useAuctionStore = defineStore('auction', () => {
   /**
    * Admin: Create a new auction
    */
+  const buyItNow = async (auctionId: number | string) => {
+    isSubmitting.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+    try {
+      const res = await fetch(resolveApiUrl(`/auctions/${auctionId}/buy-now`), {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        const msg = json.errors?.buy_it_now?.[0] || json.errors?.wallet?.[0] || json.message || 'Buy It Now failed.';
+        throw new Error(msg);
+      }
+      successMessage.value = json.message || 'Congratulations! You won this lot instantly via Buy It Now!';
+      await fetchAuction(auctionId);
+      await fetchAuctions();
+      return json.data;
+    } catch (e: any) {
+      errorMessage.value = e.message || 'Could not execute Buy It Now.';
+      throw e;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
+  const adminCancelBid = async (auctionId: number | string, bidId: number | string, reason: string) => {
+    isSubmitting.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+    try {
+      const res = await fetch(resolveApiUrl(`/admin/auctions/${auctionId}/bids/${bidId}/cancel`), {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to cancel bid.');
+      }
+      successMessage.value = json.message || 'Bid cancelled and wallet hold released.';
+      await fetchAuction(auctionId);
+      await fetchAuctions();
+      return json.data;
+    } catch (e: any) {
+      errorMessage.value = e.message || 'Could not cancel bid.';
+      throw e;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
   const createAuction = async (payload: FormData | Record<string, any>) => {
     isSubmitting.value = true;
     errorMessage.value = null;
@@ -303,6 +355,54 @@ export const useAuctionStore = defineStore('auction', () => {
       return json.data;
     } catch (e: any) {
       errorMessage.value = e.message || 'Could not create auction.';
+      throw e;
+    } finally {
+      isSubmitting.value = false;
+    }
+  };
+
+  /**
+   * Admin: Update existing auction lot
+   */
+  const updateAuction = async (id: number | string, payload: FormData | Record<string, any>) => {
+    isSubmitting.value = true;
+    errorMessage.value = null;
+    successMessage.value = null;
+
+    try {
+      let options: RequestInit;
+
+      if (payload instanceof FormData) {
+        const headers: Record<string, string> = { Accept: 'application/json' };
+        if (authStore.token) headers['Authorization'] = `Bearer ${authStore.token}`;
+        options = {
+          method: 'POST',
+          headers,
+          body: payload,
+        };
+      } else {
+        options = {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        };
+      }
+
+      const res = await fetch(resolveApiUrl(`/auctions/${id}`), options);
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        const errors = (json.errors || {}) as Record<string, string[]>;
+        const firstErrorList = Object.values(errors)[0];
+        const firstError = Array.isArray(firstErrorList) ? firstErrorList[0] : undefined;
+        const errorMsg = json.message || firstError || 'Failed to update auction.';
+        throw new Error(errorMsg);
+      }
+
+      successMessage.value = 'Auction lot updated successfully!';
+      await fetchAuctions();
+      return json.data;
+    } catch (e: any) {
+      errorMessage.value = e.message || 'Could not update auction.';
       throw e;
     } finally {
       isSubmitting.value = false;
@@ -491,7 +591,10 @@ export const useAuctionStore = defineStore('auction', () => {
     stopListeningForBids,
     placeQuickBid,
     setProxyBid,
+    buyItNow,
+    adminCancelBid,
     createAuction,
+    updateAuction,
     updateAuctionStatus,
     deleteAuction,
     toggleFavorite,

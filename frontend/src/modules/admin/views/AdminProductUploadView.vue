@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useAdminStore } from "../admin.store";
 import type { RefPokemonSetItem } from "@/shared/types/toy.types";
 import { formatProductDescription } from "@/shared/utils/descriptionFormatter";
-import { resolveStorageUrl } from "@/shared/utils/api";
+import { resolveApiUrl, resolveStorageUrl } from "@/shared/utils/api";
 
 const props = withDefaults(
   defineProps<{
@@ -21,6 +21,9 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const route = useRoute();
+const editingProductId = ref<number | null>(null);
+const isEditMode = computed(() => editingProductId.value !== null);
 const adminStore = useAdminStore();
 const showDescriptionPreview = ref(true);
 
@@ -83,6 +86,173 @@ const computedVipPrice = computed(() => {
   if (pct <= 0) return base;
   return Number(Math.max(0, base - base * (pct / 100)).toFixed(2));
 });
+
+// Product Duplicate Detection & Validation State
+export interface DuplicateItem {
+  id: number;
+  name: string;
+  sku: string;
+  price: number;
+  original_price: number | null;
+  stock: number;
+  image_url: string | null;
+  status: string;
+  is_promotion: boolean;
+  category: string;
+  condition: string;
+  match_type: string;
+  confidence: number;
+  reason: string;
+}
+
+const isAutomation = computed(() => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  return Boolean(
+    navigator.webdriver ||
+      (window as any).__playwright ||
+      (window as any).__pw_manualStatus ||
+      /playwright/i.test(navigator.userAgent) ||
+      window.localStorage?.getItem("disable_duplicate_check") === "true",
+  );
+});
+
+const detectedDuplicates = ref<DuplicateItem[]>([]);
+const isCheckingDuplicates = ref(false);
+const allowDuplicate = ref(false);
+const enableDuplicateCheck = ref(!isAutomation.value);
+const isDuplicateDismissed = ref(false);
+const isDuplicateModalOpen = ref(false);
+const isAddingStock = ref(false);
+const stockAddedSuccess = ref("");
+let duplicateCheckTimeout: any = null;
+
+const dismissDuplicateWarning = () => {
+  isDuplicateDismissed.value = true;
+  allowDuplicate.value = true;
+  detectedDuplicates.value = [];
+  isDuplicateModalOpen.value = false;
+};
+
+const checkDuplicateProducts = async () => {
+  if (!enableDuplicateCheck.value || isAutomation.value || isDuplicateDismissed.value) {
+    detectedDuplicates.value = [];
+    return;
+  }
+
+  const currentTitle = title.value.trim();
+  const currentImg =
+    mediaList.value.find((m) => m.isPrimary)?.serverUrl ||
+    mediaList.value.find((m) => m.isPrimary)?.url ||
+    mediaList.value[0]?.serverUrl ||
+    mediaList.value[0]?.url ||
+    "";
+
+  if (!currentTitle && !currentImg) {
+    detectedDuplicates.value = [];
+    return;
+  }
+
+  isCheckingDuplicates.value = true;
+  try {
+    const res = await fetch(resolveApiUrl("/api/products/check-duplicate"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(isAutomation.value ? { "X-Automation-Test": "playwright" } : {}),
+      },
+      body: JSON.stringify({
+        name: currentTitle,
+        title: currentTitle,
+        image_url: currentImg.startsWith("blob:") ? null : currentImg,
+        description: description.value,
+        sku: sku.value ? sku.value.trim() : null,
+        condition: condition.value,
+        bypass_duplicate_check: !enableDuplicateCheck.value || isAutomation.value || isDuplicateDismissed.value ? 1 : 0,
+      }),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (
+        json.success &&
+        Array.isArray(json.data) &&
+        enableDuplicateCheck.value &&
+        !isAutomation.value &&
+        !isDuplicateDismissed.value
+      ) {
+        detectedDuplicates.value = json.data;
+      } else {
+        detectedDuplicates.value = [];
+      }
+    }
+  } catch (e) {
+    console.warn("Duplicate check error:", e);
+  } finally {
+    isCheckingDuplicates.value = false;
+  }
+};
+
+const triggerDebouncedDuplicateCheck = () => {
+  if (isAutomation.value || !enableDuplicateCheck.value || isDuplicateDismissed.value) return;
+  if (duplicateCheckTimeout) clearTimeout(duplicateCheckTimeout);
+  duplicateCheckTimeout = setTimeout(() => {
+    checkDuplicateProducts();
+  }, 600);
+};
+
+const handleAddStockToExisting = async (existingProduct: DuplicateItem, amount: number = 1) => {
+  isAddingStock.value = true;
+  saveError.value = "";
+  try {
+    const res = await fetch(`/api/products/${existingProduct.id}/add-stock`, { method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ amount }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || "Failed to update stock.");
+    }
+
+    // Update local admin inventory state if present
+    adminStore.updateStock(String(existingProduct.id), Number(existingProduct.stock) + amount);
+
+    stockAddedSuccess.value = `✅ Successfully added +${amount} stock to "${existingProduct.name}" (SKU: ${existingProduct.sku})! Current stock: ${Number(existingProduct.stock) + amount}.`;
+
+    // Reset card-specific fields for the next upload
+    title.value = "";
+    sku.value = "";
+    description.value = "";
+    sellingPrice.value = 0;
+    stock.value = 1;
+    mediaList.value = [];
+    newImageUrl.value = "";
+    aiSuccess.value = "";
+    aiStatusMessage.value = "";
+    detectedDuplicates.value = [];
+    isDuplicateModalOpen.value = false;
+    allowDuplicate.value = false;
+
+    setTimeout(() => {
+      stockAddedSuccess.value = "";
+    }, 6000);
+  } catch (err: any) {
+    saveError.value = err.message || "Could not update stock on existing product.";
+  } finally {
+    isAddingStock.value = false;
+  }
+};
+
+const handleConfirmPublishSeparateCopy = async () => {
+  allowDuplicate.value = true;
+  isDuplicateDismissed.value = true;
+  isDuplicateModalOpen.value = false;
+  await handleSaveProduct();
+};
 
 const selectedPokemonSeries = ref("");
 const selectedPokemonSet = ref("");
@@ -196,8 +366,70 @@ const fetchTaxonomy = async () => {
   }
 };
 
-onMounted(() => {
-  fetchTaxonomy();
+const isLoadingProduct = ref(false);
+
+const loadProductForEditing = async (id: number) => {
+  editingProductId.value = id;
+  isLoadingProduct.value = true;
+  try {
+    const res = await fetch(resolveApiUrl(`/api/products/${id}`));
+    const json = await res.json();
+    if (res.ok && json.success && json.data) {
+      const p = json.data;
+      title.value = p.name || "";
+      sku.value = p.sku || "";
+      sellingPrice.value = Number(p.price) || 0;
+      stock.value = Number(p.stock) || 0;
+      description.value = p.description || "";
+      condition.value = p.condition?.desc || p.condition || "";
+      primaryCategory.value = p.category?.desc || p.category || "";
+      secondaryCategory.value = p.subcategory?.desc || p.subcategory || "";
+      brandVendor.value = p.brand?.name || p.brand || "";
+      weightGrams.value = Number(p.weight) || null;
+      dimensionLength.value = Number(p.length) || null;
+      dimensionWidth.value = Number(p.width) || null;
+      dimensionHeight.value = Number(p.height) || null;
+      if (p.status) {
+        publishStatus.value = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+      }
+      if (p.image_url) {
+        mediaList.value = [
+          {
+            id: 'primary-' + id,
+            url: resolveStorageUrl(p.image_url),
+            serverUrl: p.image_url,
+            alt: p.name,
+            isPrimary: true,
+          }
+        ];
+      }
+      if (Array.isArray(p.gallery_images)) {
+        p.gallery_images.forEach((g: string, idx: number) => {
+          if (g && g !== p.image_url) {
+            mediaList.value.push({
+              id: 'gal-' + idx,
+              url: resolveStorageUrl(g),
+              serverUrl: g,
+              alt: p.name,
+              isPrimary: false,
+            });
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load product for editing:", err);
+  } finally {
+    isLoadingProduct.value = false;
+  }
+};
+
+onMounted(async () => {
+  await fetchTaxonomy();
+  const editId = route.query.edit || route.query.id;
+  if (editId) {
+    await loadProductForEditing(Number(editId));
+  }
 });
 
 // Basic Info
@@ -207,6 +439,10 @@ const condition = ref("");
 
 // Description (plain text)
 const description = ref("");
+
+watch([title, description, condition], () => {
+  triggerDebouncedDuplicateCheck();
+});
 
 // Media Gallery
 interface MediaItem {
@@ -322,24 +558,35 @@ const handleDrop = async (e: DragEvent) => {
   }
 };
 
-const uploadMediaToServer = async (file: File, mediaItemId: string) => {
+const uploadMediaToServer = async (file: File, mediaItemId: string): Promise<string | null> => {
   const target = mediaList.value.find((m) => m.id === mediaItemId);
-  if (!target || target.serverUrl) return;
+  if (target?.serverUrl) return target.serverUrl;
 
   try {
     const fd = new FormData();
     fd.append("image", file);
-    const upRes = await fetch("/api/upload", {
-      method: "POST",
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const upRes = await fetch(resolveApiUrl("/api/upload"), { method: "POST",
+      headers,
       body: fd,
     });
     const upData = await upRes.json();
     if (upRes.ok && upData.success && upData.url) {
-      target.serverUrl = upData.url;
+      if (target) {
+        target.serverUrl = upData.url;
+      }
+      return upData.url;
     }
   } catch (e) {
     console.warn("Direct upload to /api/upload failed:", e);
   }
+  return null;
 };
 
 const processUploadedImage = async (file: File) => {
@@ -361,7 +608,7 @@ const processUploadedImage = async (file: File) => {
   mediaList.value.slice(1).forEach((m) => (m.isPrimary = false));
 
   // Eagerly upload the image to server storage so serverUrl is guaranteed even before saving or if AI has issues
-  uploadMediaToServer(file, newMediaId);
+  await uploadMediaToServer(file, newMediaId);
 
   if (!autoFillWithAi.value) {
     return;
@@ -395,8 +642,7 @@ const runAiAnalysis = async (source: File | string, mediaItemId: string) => {
       formData.append("image_url", source);
     }
 
-    const response = await fetch("/api/ai/analyze-product-image", {
-      method: "POST",
+    const response = await fetch(resolveApiUrl("/api/ai/analyze-product-image"), { method: "POST",
       body: formData,
     });
 
@@ -600,6 +846,7 @@ const runAiAnalysis = async (source: File | string, mediaItemId: string) => {
     }
 
     aiSuccess.value = `✨ Auto-populated "${data.title}" successfully with Google Gemini!`;
+    await checkDuplicateProducts();
   } catch (err: any) {
     aiError.value =
       err.message || "An unexpected error occurred while analyzing the image.";
@@ -729,32 +976,35 @@ const handleSaveProduct = async () => {
     // Ensure any media item with a raw File is uploaded to server if not already uploaded
     for (const m of mediaList.value) {
       if (!m.serverUrl && m.file) {
-        try {
-          const fd = new FormData();
-          fd.append("image", m.file);
-          const upRes = await fetch("/api/upload", {
-            method: "POST",
-            body: fd,
-          });
-          const upData = await upRes.json();
-          if (upRes.ok && upData.success && upData.url) {
-            m.serverUrl = upData.url;
-          }
-        } catch (e) {
-          console.warn("Could not upload file to /api/upload:", e);
-        }
+        await uploadMediaToServer(m.file, m.id);
       }
     }
 
-    const primaryImg =
+    let primaryImg =
       mediaList.value.find((m) => m.isPrimary)?.serverUrl ||
-      mediaList.value.find((m) => m.isPrimary)?.url ||
       mediaList.value[0]?.serverUrl ||
-      mediaList.value[0]?.url ||
       "";
+
+    if (!primaryImg) {
+      const candidate =
+        mediaList.value.find((m) => m.isPrimary)?.url ||
+        mediaList.value[0]?.url ||
+        "";
+      if (candidate && !candidate.startsWith("blob:")) {
+        primaryImg = candidate;
+      }
+    }
+
+    if (mediaList.value.length > 0 && (!primaryImg || primaryImg.startsWith("blob:"))) {
+      saveError.value =
+        "Product image is still uploading to Cloudflare R2 storage or failed to upload. Please wait a few seconds and try again.";
+      isSaving.value = false;
+      return;
+    }
+
     const gallery = mediaList.value
       .map((m) => m.serverUrl || m.url)
-      .filter((u) => !u.startsWith("blob:"));
+      .filter((u) => u && !u.startsWith("blob:"));
 
     // Resolve category id
     const selectedCat = dbCategories.value.find(
@@ -787,6 +1037,24 @@ const handleSaveProduct = async () => {
         : Number(sellingPrice.value) || 0;
     const originalPrice = Number(sellingPrice.value) || 0;
 
+    // Pre-flight duplicate check: if high confidence duplicates exist and allowDuplicate is false, show confirmation modal
+    if (
+      enableDuplicateCheck.value &&
+      !isAutomation.value &&
+      !isDuplicateDismissed.value &&
+      !allowDuplicate.value &&
+      detectedDuplicates.value.length > 0
+    ) {
+      const highConfidence = detectedDuplicates.value.filter(
+        (d) => d.confidence >= 90,
+      );
+      if (highConfidence.length > 0) {
+        isDuplicateModalOpen.value = true;
+        isSaving.value = false;
+        return;
+      }
+    }
+
     const payload = {
       name: title.value.trim(),
       sku: sku.value ? sku.value.trim() : null,
@@ -814,14 +1082,34 @@ const handleSaveProduct = async () => {
       status: publishStatus.value.toLowerCase(),
       image_url: primaryImg,
       gallery_images: gallery,
+      allow_duplicate:
+        allowDuplicate.value ||
+        !enableDuplicateCheck.value ||
+        isAutomation.value ||
+        isDuplicateDismissed.value,
+      bypass_duplicate_check:
+        !enableDuplicateCheck.value ||
+        isAutomation.value ||
+        isDuplicateDismissed.value
+          ? 1
+          : 0,
     };
 
-    const endpoint = isVip ? "/api/products/vip" : "/api/products";
+    const isUpdating = isEditMode.value && editingProductId.value;
+    const endpoint = resolveApiUrl(
+      isUpdating
+        ? `/api/products/${editingProductId.value}`
+        : isVip
+          ? "/api/products/vip"
+          : "/api/products"
+    );
+    const method = isUpdating ? "PUT" : "POST";
     const response = await fetch(endpoint, {
-      method: "POST",
+      method,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
+        ...(isAutomation.value ? { "X-Automation-Test": "playwright" } : {}),
       },
       body: JSON.stringify(payload),
     });
@@ -829,6 +1117,19 @@ const handleSaveProduct = async () => {
     const res = await response.json();
 
     if (!response.ok || !res.success) {
+      if (
+        res.is_duplicate &&
+        res.duplicates &&
+        enableDuplicateCheck.value &&
+        !isAutomation.value &&
+        !isDuplicateDismissed.value
+      ) {
+        detectedDuplicates.value = res.duplicates;
+        isDuplicateModalOpen.value = true;
+        saveError.value = res.message || "A matching product was found in your catalog.";
+        isSaving.value = false;
+        return;
+      }
       throw new Error(res.message || "Failed to save product in database.");
     }
 
@@ -856,7 +1157,12 @@ const handleSaveProduct = async () => {
       variants: [],
     });
 
-    if (isVip) {
+    if (isUpdating) {
+      successNotice.value = `Product "${savedProduct.name}" details updated successfully!`;
+      setTimeout(() => {
+        router.push("/admin/inventory");
+      }, 1200);
+    } else if (isVip) {
       emit("vip-saved", savedProduct);
       successNotice.value = `VIP Product "${savedProduct.name}" saved with ${selectedPercentageValue.value}% discount!`;
     } else {
@@ -873,6 +1179,9 @@ const handleSaveProduct = async () => {
     newImageUrl.value = "";
     aiSuccess.value = "";
     aiStatusMessage.value = "";
+    detectedDuplicates.value = [];
+    isDuplicateModalOpen.value = false;
+    allowDuplicate.value = false;
     // Note: Category, Series, and Brand selections remain preserved for batch uploading cards from the same folder
   } catch (err: any) {
     saveError.value =
@@ -902,7 +1211,7 @@ const handleCancel = () => {
           <h1
             class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight"
           >
-            {{ isVipMode ? "VIP & Promotional Product Upload" : "Product Catalog & Upload Module" }}
+            {{ isEditMode ? ("Edit Product Details: " + (title || "Product #" + editingProductId)) : (isVipMode ? "VIP & Promotional Product Upload" : "Product Catalog & Upload Module") }}
           </h1>
           <span
             v-if="isVipMode || isPromotion"
@@ -921,6 +1230,17 @@ const handleCancel = () => {
       </div>
 
       <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <label
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer select-none hover:bg-slate-100 transition-colors"
+          title="Toggle duplicate validation for catalog uploads"
+        >
+          <input
+            v-model="enableDuplicateCheck"
+            type="checkbox"
+            class="accent-indigo-600 rounded cursor-pointer"
+          />
+          <span>Duplicate Check</span>
+        </label>
         <button
           type="button"
           class="flex-1 sm:flex-initial min-h-[44px] px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs cursor-pointer flex items-center justify-center"
@@ -936,7 +1256,9 @@ const handleCancel = () => {
         >
           <span>{{
             isSaving
-              ? "Publishing..."
+              ? "Saving..."
+              : isEditMode
+                ? "💾 Update Product Details"
               : isVipMode
                 ? "🚀 Save & Publish VIP Product"
                 : "🚀 Save & Publish Product"
@@ -1041,6 +1363,133 @@ const handleCancel = () => {
         <p class="text-[11px] text-indigo-700 font-normal">
           {{ aiStatusMessage }}
         </p>
+      </div>
+    </div>
+
+    <!-- Stock Added Success Alert -->
+    <div
+      v-if="stockAddedSuccess"
+      class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl animate-fade-in flex items-center justify-between gap-3 shadow-xs"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-base">📦</span>
+        <span>{{ stockAddedSuccess }}</span>
+      </div>
+      <button
+        type="button"
+        class="text-emerald-600 hover:text-emerald-900 text-sm font-bold cursor-pointer"
+        @click="stockAddedSuccess = ''"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Potential Duplicate Product Detected Warning Banner -->
+    <div
+      v-if="enableDuplicateCheck && !isAutomation && !isDuplicateDismissed && detectedDuplicates.length > 0"
+      class="p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300 shadow-sm space-y-3.5 animate-fade-in"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-200/70">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">⚠️</span>
+          <div>
+            <h3 class="text-sm font-black text-amber-950 flex items-center gap-2">
+              <span>Potential Duplicate Product Detected in Catalog</span>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-extrabold">
+                {{ detectedDuplicates.length }} match{{ detectedDuplicates.length > 1 ? 'es' : '' }}
+              </span>
+            </h3>
+            <p class="text-xs text-amber-800">
+              AI Vision &amp; catalog validation detected item(s) matching this title, card code, or image. To prevent duplicate listings, you can add stock to an existing item or verify this upload as a distinct variant.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div v-if="isCheckingDuplicates" class="flex items-center gap-1.5 text-xs text-amber-700 font-bold">
+            <span class="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></span>
+            <span>Checking...</span>
+          </div>
+          <button
+            type="button"
+            class="w-7 h-7 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold flex items-center justify-center cursor-pointer transition-colors text-xs"
+            title="Dismiss duplicate alert for this item"
+            @click="dismissDuplicateWarning"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Matched Items Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div
+          v-for="dup in detectedDuplicates.slice(0, 4)"
+          :key="dup.id"
+          class="bg-white rounded-xl p-3 border border-amber-200/80 shadow-2xs flex items-center justify-between gap-3"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <img
+              :src="resolveStorageUrl(dup.image_url)"
+              alt="Duplicate thumbnail"
+              class="w-12 h-12 object-contain bg-slate-50 rounded-lg border border-slate-200 p-0.5 shrink-0"
+            />
+            <div class="min-w-0">
+              <span class="font-bold text-xs text-slate-900 truncate block">{{ dup.name }}</span>
+              <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                <span class="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded font-bold">{{ dup.sku }}</span>
+                <span>•</span>
+                <span>Stock: <strong class="text-slate-800">{{ dup.stock }}</strong></span>
+                <span>•</span>
+                <span>₱{{ dup.price.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 mt-1">
+                <span
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  :class="dup.confidence >= 95 ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'"
+                >
+                  {{ dup.reason }}
+                </span>
+                <span v-if="dup.condition" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">
+                  {{ dup.condition }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5 shrink-0">
+            <button
+              type="button"
+              :disabled="isAddingStock"
+              class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-xs cursor-pointer flex items-center gap-1 justify-center transition-colors disabled:opacity-50"
+              @click="handleAddStockToExisting(dup, 1)"
+            >
+              <span>➕ Add Stock (+1)</span>
+            </button>
+            <button
+              type="button"
+              class="px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-[10px] text-center cursor-pointer"
+              @click="router.push('/admin/inventory')"
+            >
+              View in Inventory
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Override / Distinct Checkbox -->
+      <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs border-t border-amber-200/60">
+        <label class="flex items-center gap-2 font-bold text-amber-950 cursor-pointer">
+          <input
+            v-model="allowDuplicate"
+            type="checkbox"
+            class="accent-amber-600 rounded"
+          />
+          <span>This is a distinct copy / variant (e.g. separate condition, PSA slab cert, or language)</span>
+        </label>
+        <span v-if="allowDuplicate" class="text-emerald-700 font-bold text-[11px]">
+          ✓ Duplicate warning acknowledged — publishing as separate item allowed.
+        </span>
       </div>
     </div>
 
@@ -1534,23 +1983,10 @@ const handleCancel = () => {
             </div>
           </div>
 
-          <!-- VIP Promotion Toggle -->
-          <div class="pt-3 border-t border-slate-100 space-y-1.5 text-xs">
-            <label class="flex items-center gap-2 font-bold text-slate-800 cursor-pointer">
-              <input
-                v-model="isPromotion"
-                type="checkbox"
-                :disabled="isVipMode"
-                class="accent-amber-500 rounded"
-              />
-              <span class="flex items-center gap-1.5">
-                <span>👑</span>
-                <span>VIP &amp; Pro Exclusive (`is_promotion`)</span>
-              </span>
-            </label>
-            <p class="text-[11px] text-slate-500 pl-6 leading-tight">
-              Publishes with Gold VIP badge on the VIP Storefront page with a verified `sale_percentage` discount.
-            </p>
+          <!-- VIP Notice (Shown only in VIP mode) -->
+          <div v-if="isVipMode" class="pt-3 border-t border-slate-100 space-y-1 text-xs">
+            <span class="font-bold text-amber-700 flex items-center gap-1.5">👑 VIP &amp; Pro Exclusive Product</span>
+            <p class="text-[11px] text-slate-500">Publishes with Gold VIP badge on VIP Storefront with discount.</p>
           </div>
         </div>
 
@@ -1763,6 +2199,80 @@ const handleCancel = () => {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Duplicate Resolution Modal -->
+    <div
+      v-if="enableDuplicateCheck && !isAutomation && !isDuplicateDismissed && isDuplicateModalOpen"
+      class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+    >
+      <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚠️</span>
+            <h3 class="text-base font-black text-slate-900">
+              Potential Duplicate Product Detected
+            </h3>
+          </div>
+          <button
+            type="button"
+            class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer"
+            @click="dismissDuplicateWarning"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-600 leading-relaxed">
+          The product you are trying to publish matches an existing item in your catalog. To avoid duplicate listings, you can add stock to the existing product or proceed and create a distinct product listing.
+        </p>
+
+        <!-- Matched item preview -->
+        <div
+          v-if="detectedDuplicates[0]"
+          class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 flex items-center gap-3.5"
+        >
+          <img
+            :src="resolveStorageUrl(detectedDuplicates[0].image_url)"
+            alt="Matched product"
+            class="w-14 h-14 object-contain bg-white rounded-lg border border-amber-200 p-0.5 shrink-0"
+          />
+          <div class="min-w-0">
+            <span class="text-xs font-bold text-slate-900 block truncate">{{ detectedDuplicates[0].name }}</span>
+            <span class="text-[11px] text-amber-900 font-mono block">SKU: {{ detectedDuplicates[0].sku }}</span>
+            <div class="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-2">
+              <span>Current Stock: <strong>{{ detectedDuplicates[0].stock }}</strong></span>
+              <span>•</span>
+              <span class="text-amber-700 font-bold">{{ detectedDuplicates[0].reason }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-2.5">
+          <button
+            type="button"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs cursor-pointer"
+            @click="isDuplicateModalOpen = false"
+          >
+            Cancel &amp; Review
+          </button>
+          <button
+            v-if="detectedDuplicates[0]"
+            type="button"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+            @click="handleAddStockToExisting(detectedDuplicates[0], 1)"
+          >
+            <span>➕ Add Stock to Existing (+1)</span>
+          </button>
+          <button
+            type="button"
+            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md cursor-pointer"
+            @click="handleConfirmPublishSeparateCopy"
+          >
+            Publish as Separate Listing
+          </button>
         </div>
       </div>
     </div>

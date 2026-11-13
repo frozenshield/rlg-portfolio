@@ -133,7 +133,7 @@ export interface CheckoutFormData {
   carrierId?: number | null;
   saveToProfile?: boolean;
   giftMessage?: string;
-  paymentMethod: "paymongo_qrph" | "qr" | "card" | "wallet" | "cod";
+  paymentMethod: "paymongo_qrph" | "paymongo_bpi" | "paymongo_ubp" | "qr" | "card" | "wallet" | "cod";
   qrMerchantCode?: "gotyme" | "gcash" | "maribank" | "paymaya" | string;
   cardNumber?: string;
   cardExpiry?: string;

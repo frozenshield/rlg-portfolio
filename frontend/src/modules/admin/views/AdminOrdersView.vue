@@ -24,6 +24,60 @@ const isFulfillmentModalOpen = ref(false);
 const isRefundModalOpen = ref(false);
 const isInvoiceModalOpen = ref(false);
 const isItemsDetailModalOpen = ref(false);
+const isLbcTrackingModalOpen = ref(false);
+const isLoadingLbcTracking = ref(false);
+const lbcTrackingError = ref<string | null>(null);
+const lbcTrackingData = ref<any>(null);
+
+const isLbcCarrier = (carrier?: string | null) => {
+  if (!carrier) return false;
+  const c = carrier.toLowerCase();
+  return c.includes("lbc") || c.includes("lbcexpress");
+};
+
+const openLbcTracking = async (order: AdminOrder) => {
+  selectedOrder.value = order;
+  isLbcTrackingModalOpen.value = true;
+  isLoadingLbcTracking.value = true;
+  lbcTrackingError.value = null;
+  lbcTrackingData.value = null;
+
+  try {
+    const res = await fetch(`/api/customer-orders/${order.id}/track-lbc`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      lbcTrackingData.value = data.tracking || data;
+      await adminStore.fetchOrders();
+    } else {
+      const rawRes = await fetch("/api/tracking/lbc", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ tracking_number: order.trackingNumber }),
+      });
+      const rawData = await rawRes.json();
+      if (rawRes.ok && rawData.success) {
+        lbcTrackingData.value = rawData;
+      } else {
+        lbcTrackingError.value =
+          rawData.message || data.message || "Failed to retrieve LBC tracking data.";
+      }
+    }
+  } catch (err: any) {
+    lbcTrackingError.value =
+      err.message || "Network error communicating with LBC gateway.";
+  } finally {
+    isLoadingLbcTracking.value = false;
+  }
+};
 
 const openItemsDetail = (order: AdminOrder) => {
   selectedOrder.value = order;
@@ -452,6 +506,16 @@ const cancelStatusChange = (orderId: string) => {
                     >
                       ✏️
                     </button>
+                    <button
+                      v-if="isLbcCarrier(order.carrier)"
+                      type="button"
+                      class="text-[10px] font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-1.5 py-0.5 rounded transition-colors cursor-pointer inline-flex items-center gap-1"
+                      title="Track live via LBC API v2"
+                      @click="openLbcTracking(order)"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                      LBC
+                    </button>
                   </div>
                 </div>
                 <button
@@ -573,6 +637,19 @@ const cancelStatusChange = (orderId: string) => {
           <span
             v-if="order.trackingNumber"
             class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200"
+          >
+            {{ order.trackingNumber }}
+          </span>
+          <button
+            v-if="order.trackingNumber && isLbcCarrier(order.carrier)"
+            type="button"
+            class="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded inline-flex items-center gap-1 cursor-pointer"
+            @click="openLbcTracking(order)"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+            Track LBC
+          </button>
+          <span v-if="false"
           >
             {{ order.trackingNumber }}
           </span>
@@ -1071,6 +1148,210 @@ const cancelStatusChange = (orderId: string) => {
               @click="printDocument"
             >
               <span>🖨️ Download / Print PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- LBC Express Tracking Live Modal -->
+    <teleport to="body">
+      <div
+        v-if="isLbcTrackingModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      >
+        <div
+          class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]"
+        >
+          <!-- Header -->
+          <div
+            class="px-6 py-4 bg-gradient-to-r from-red-600 to-rose-700 text-white flex items-center justify-between shadow-xs"
+          >
+            <div class="flex items-center gap-2.5">
+              <div
+                class="w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-lg font-black"
+              >
+                🚚
+              </div>
+              <div>
+                <h3 class="font-extrabold text-sm tracking-tight flex items-center gap-2">
+                  LBC Express Track &amp; Trace
+                  <span class="text-[9px] uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded font-black">
+                    API v2
+                  </span>
+                </h3>
+                <p class="text-[11px] text-red-100 font-mono">
+                  #{{ selectedOrder?.trackingNumber || selectedOrder?.id }}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition-colors cursor-pointer"
+              @click="isLbcTrackingModalOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
+            <!-- Loading State -->
+            <div
+              v-if="isLoadingLbcTracking"
+              class="py-12 flex flex-col items-center justify-center gap-3 text-center"
+            >
+              <div
+                class="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin"
+              ></div>
+              <p class="font-bold text-slate-800 text-sm">
+                Querying LBC Tracking Gateway...
+              </p>
+              <p class="text-slate-400 text-xs">
+                Requesting SOAP Envelope via lbcapigateway.lbcapps.com
+              </p>
+            </div>
+
+            <!-- Error State -->
+            <div
+              v-else-if="lbcTrackingError"
+              class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 space-y-2"
+            >
+              <div class="flex items-center gap-2 font-bold text-sm">
+                <span>⚠️</span>
+                <span>Could not retrieve tracking details</span>
+              </div>
+              <p class="text-xs text-rose-700 leading-relaxed">
+                {{ lbcTrackingError }}
+              </p>
+              <div class="pt-2">
+                <button
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors cursor-pointer"
+                  @click="selectedOrder && openLbcTracking(selectedOrder)"
+                >
+                  Retry Query
+                </button>
+              </div>
+            </div>
+
+            <!-- Success Content -->
+            <div v-else-if="lbcTrackingData" class="space-y-4">
+              <!-- Status Pill Card -->
+              <div
+                class="p-4 rounded-2xl border flex items-center justify-between gap-3"
+                :class="
+                  lbcTrackingData.status === 'delivered'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : lbcTrackingData.status === 'in_transit' || lbcTrackingData.status === 'out_for_delivery'
+                    ? 'bg-blue-50 border-blue-200 text-blue-900'
+                    : 'bg-amber-50 border-amber-200 text-amber-900'
+                "
+              >
+                <div>
+                  <span class="text-[10px] uppercase font-bold tracking-wider opacity-80 block">
+                    Current Delivery Status
+                  </span>
+                  <p class="text-base font-black capitalize mt-0.5">
+                    {{ lbcTrackingData.raw_status || lbcTrackingData.status?.replace('_', ' ') || 'In Transit' }}
+                  </p>
+                  <p v-if="lbcTrackingData.status_description" class="text-xs opacity-90 mt-0.5">
+                    {{ lbcTrackingData.status_description }}
+                  </p>
+                </div>
+                <div class="text-2xl">
+                  {{
+                    lbcTrackingData.status === 'delivered'
+                      ? '✅'
+                      : lbcTrackingData.status === 'out_for_delivery'
+                      ? '🛵'
+                      : '📦'
+                  }}
+                </div>
+              </div>
+
+              <!-- Quick Info Grid -->
+              <div class="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">Current Location</span>
+                  <span class="font-bold text-slate-800 block truncate">
+                    {{ lbcTrackingData.location || 'Processing Hub' }}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">Last Checkpoint</span>
+                  <span class="font-medium text-slate-700 block truncate">
+                    {{ lbcTrackingData.timestamp || 'Recent' }}
+                  </span>
+                </div>
+                <div v-if="lbcTrackingData.recipient" class="col-span-2 pt-1 border-t border-slate-200/60">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">Received By / Consignee</span>
+                  <span class="font-bold text-emerald-700 block">
+                    {{ lbcTrackingData.recipient }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Checkpoint Timeline -->
+              <div>
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider mb-3">
+                  Tracking History &amp; Checkpoints
+                </h4>
+
+                <div
+                  v-if="lbcTrackingData.events && lbcTrackingData.events.length > 0"
+                  class="space-y-3 relative pl-4 border-l-2 border-slate-200 ml-2"
+                >
+                  <div
+                    v-for="(ev, idx) in lbcTrackingData.events"
+                    :key="'ev-' + idx"
+                    class="relative pl-3 space-y-0.5"
+                  >
+                    <span
+                      class="absolute -left-[23px] top-1 w-3 h-3 rounded-full border-2 border-white shadow-xs"
+                      :class="idx === 0 ? 'bg-red-600 ring-2 ring-red-200' : 'bg-slate-300'"
+                    ></span>
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-bold text-slate-800 text-xs">
+                        {{ ev.status || ev.details }}
+                      </span>
+                      <span class="text-[10px] text-slate-400 font-mono">
+                        {{ ev.date }}
+                      </span>
+                    </div>
+                    <p v-if="ev.location" class="text-[11px] text-slate-500 font-medium">
+                      📍 {{ ev.location }}
+                    </p>
+                    <p v-if="ev.details && ev.details !== ev.status" class="text-[11px] text-slate-600">
+                      {{ ev.details }}
+                    </p>
+                  </div>
+                </div>
+
+                <div v-else class="text-center py-4 text-xs text-slate-400">
+                  No previous checkpoint logs recorded yet.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 font-bold text-xs transition-colors cursor-pointer"
+              @click="isLbcTrackingModalOpen = false"
+            >
+              Close
+            </button>
+            <button
+              v-if="selectedOrder"
+              type="button"
+              class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+              :disabled="isLoadingLbcTracking"
+              @click="openLbcTracking(selectedOrder)"
+            >
+              <span>🔄 Refresh Live Status</span>
             </button>
           </div>
         </div>

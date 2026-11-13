@@ -22,9 +22,10 @@ const emit = defineEmits<{
       class="grid grid-cols-3 landscape:grid-cols-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 p-2"
     >
       <ToyCard
-        v-for="toy in toys"
+        v-for="(toy, index) in toys"
         :key="toy.id"
         :toy="toy"
+        :eager="index < 6"
         @quick-view="(t) => emit('quick-view', t)"
       />
     </div>

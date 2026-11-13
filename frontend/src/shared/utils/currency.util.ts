@@ -1,15 +1,32 @@
 /**
  * Formats a number to Philippine Peso currency string (₱XX.XX)
+ * Guarantees a single clean ₱ symbol and prevents doubled ₱₱ or PP displays.
  */
-export const formatCurrency = (amount: number): string => {
-  const safeAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0
-  return new Intl.NumberFormat('en-PH', {
+export const formatCurrency = (amount: number | string | null | undefined): string => {
+  const parsed = typeof amount === 'number' ? amount : parseFloat(String(amount ?? 0).replace(/[^0-9.-]/g, ''));
+  const safeAmount = !isNaN(parsed) ? parsed : 0;
+  const formatted = new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: 'PHP',
     currencyDisplay: 'symbol',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(safeAmount)
+  }).format(safeAmount);
+
+  // Guarantee single ₱ prefix, stripping any duplicate PHP, PP, P, or ₱ prefixes
+  return formatted.replace(/^(PHP|PP|P|₱|\s)+/i, '₱');
+}
+
+/**
+ * Formats a number only (e.g. 1,234.56) without currency symbol
+ */
+export const formatAmount = (amount: number | string | null | undefined): string => {
+  const parsed = typeof amount === 'number' ? amount : parseFloat(String(amount ?? 0).replace(/[^0-9.-]/g, ''));
+  const safeAmount = !isNaN(parsed) ? parsed : 0;
+  return new Intl.NumberFormat('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(safeAmount);
 }
 
 /**

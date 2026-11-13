@@ -47,3 +47,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Outer Bento Grid portfolio (`PortfolioNavbar`, `HeroSection`, `BentoGrid`, `ProjectShowcaseCard`, `SkillsMatrix`).
   - Inner Project Workspace (`WorkspaceShell`, `WorkspaceSidebar`, `WorkspaceTopBar`, `SlideDeckViewer`, `ArchitectureView`, `AiPipelinesView`, `TechStackView`, `DeploymentView`).
   - Interactive `DeviceSimulatorFrame` with `BuyerStorefrontDemo` and responsive Desktop, Tablet, and Mobile Phone viewports.
+

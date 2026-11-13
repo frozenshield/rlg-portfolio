@@ -32,37 +32,38 @@ import type {
 import { useCmsStore } from "@/modules/cms/cms.store";
 import { resolveStorageUrl } from "@/shared/utils/api";
 
-const DEFAULT_SUPER_ADMIN: AdminUser = {
-  id: "STAFF-1",
-  name: "Russel Luis Gementiza",
-  email: "admin@rlghobby.com",
-  role: "super-admin",
-  roleLabel: "Super Admin (Unrestricted)",
-  token: "demo-sanctum-token-rlg-super-admin",
-  lastLogin: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-};
-
 const getStoredAdminSession = (): AdminUser | null => {
-  if (typeof window === "undefined" || !window.localStorage) return DEFAULT_SUPER_ADMIN;
+  if (typeof window === "undefined" || !window.localStorage) return null;
   const raw = localStorage.getItem("rlg-admin-session");
-  if (!raw || raw === "null" || raw === "undefined") {
-    localStorage.setItem("rlg-admin-session", JSON.stringify(DEFAULT_SUPER_ADMIN));
-    return DEFAULT_SUPER_ADMIN;
-  }
+  if (!raw || raw === "null" || raw === "undefined") return null;
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (parsed && typeof parsed === "object" && (parsed.id || parsed.email)) {
+      if (parsed.id === "ADM-1001" && parsed.lastLogin === "Active Now") {
+        localStorage.removeItem("rlg-admin-session");
+        return null;
+      }
       return parsed as AdminUser;
     }
   } catch (e) {
     console.warn("Failed to parse admin session from localStorage", e);
   }
-  return DEFAULT_SUPER_ADMIN;
+  return null;
 };
 
 export const useAdminStore = defineStore("adminStore", () => {
   // Current logged in admin session (persisted synchronously in localStorage)
   const currentAdmin = ref<AdminUser | null>(getStoredAdminSession());
+
+  // Clear legacy mock session that was auto-seeded by default
+  if (
+    currentAdmin.value &&
+    currentAdmin.value.id === "ADM-1001" &&
+    currentAdmin.value.lastLogin === "Active Now"
+  ) {
+    currentAdmin.value = null;
+    localStorage.removeItem("rlg-admin-session");
+  }
 
   const isAuthenticated = computed(() => {
     return (
@@ -168,6 +169,11 @@ export const useAdminStore = defineStore("adminStore", () => {
       "cms",
       "analytics",
       "mobile-tools",
+      "wallet",
+      "gacha-raffles",
+      "wallet-gacha",
+      "live-breaks",
+      "preorders",
       "settings",
     ],
     manager: [
@@ -181,6 +187,9 @@ export const useAdminStore = defineStore("adminStore", () => {
       "marketing",
       "analytics",
       "mobile-tools",
+      "wallet",
+      "gacha-raffles",
+      "wallet-gacha",
     ],
     fulfillment: [
       "dashboard",
@@ -190,6 +199,9 @@ export const useAdminStore = defineStore("adminStore", () => {
       "pro-subscription",
       "auctions",
       "mobile-tools",
+      "wallet",
+      "gacha-raffles",
+      "wallet-gacha",
     ],
   };
 
@@ -207,6 +219,11 @@ export const useAdminStore = defineStore("adminStore", () => {
       "/admin/cms",
       "/admin/analytics",
       "/admin/mobile-tools",
+      "/admin/wallet",
+      "/admin/gacha-raffles",
+      "/admin/wallet-gacha",
+      "/admin/live-breaks",
+      "/admin/preorders",
       "/admin/settings",
     ],
     manager: [
@@ -220,6 +237,9 @@ export const useAdminStore = defineStore("adminStore", () => {
       "/admin/marketing",
       "/admin/analytics",
       "/admin/mobile-tools",
+      "/admin/wallet",
+      "/admin/gacha-raffles",
+      "/admin/wallet-gacha",
     ],
     fulfillment: [
       "/admin/dashboard",
@@ -228,6 +248,9 @@ export const useAdminStore = defineStore("adminStore", () => {
       "/admin/products",
       "/admin/pro-subscription",
       "/admin/mobile-tools",
+      "/admin/wallet",
+      "/admin/gacha-raffles",
+      "/admin/wallet-gacha",
     ],
   };
 
@@ -406,7 +429,7 @@ export const useAdminStore = defineStore("adminStore", () => {
   }
 
   // Dashboard timeframe filter
-  const dashboardTimeframe = ref<"today" | "week" | "month">("week");
+  const dashboardTimeframe = ref<"today" | "week" | "month" | "all">("today");
 
   if (typeof localStorage !== "undefined") {
     localStorage.removeItem("rlg-admin-orders");
@@ -836,7 +859,7 @@ export const useAdminStore = defineStore("adminStore", () => {
           subtotal: itemSubtotal,
           imageUrl:
             resolveStorageUrl(it.image_url || it.product?.image_url) ||
-            "https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?w=600&auto=format&fit=crop&q=80",
+            "https://images.pokemontcg.io/swsh7/215_hires.png",
           category:
             it.product?.category?.name ||
             it.product?.primary_category ||
@@ -1759,6 +1782,20 @@ export const useAdminStore = defineStore("adminStore", () => {
     }
   };
 
+  const fetchYouTubeMetadata = async (url: string) => {
+    const res = await fetch(`/api/youtube-metadata?url=${encodeURIComponent(url.trim())}`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to fetch YouTube metadata");
+    }
+    if (data.success) {
+      return data.data;
+    return data.data;
+    }
+  };
+
   return {
     currentAdmin,
     isAuthenticated,
@@ -1845,5 +1882,6 @@ export const useAdminStore = defineStore("adminStore", () => {
     addPromoCode,
     togglePromoCode,
     markInquiryStatus,
+    fetchYouTubeMetadata,
   };
 });

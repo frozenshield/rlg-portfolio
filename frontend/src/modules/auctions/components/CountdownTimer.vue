@@ -1,16 +1,31 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-const props = defineProps<{
-  endTime: string;
+const props = withDefaults(
+  defineProps<{
+    endTime: string;
+    bidsCount?: number;
+  }>(),
+  {
+    bidsCount: 0,
+  }
+);
+
+const emit = defineEmits<{
+  (e: 'time-up'): void;
 }>();
 
 const now = ref(Date.now());
 let timerInterval: any = null;
+let hasEmittedTimeUp = false;
 
 onMounted(() => {
   timerInterval = setInterval(() => {
     now.value = Date.now();
+    if (diffInSeconds.value <= 0 && !hasEmittedTimeUp) {
+      hasEmittedTimeUp = true;
+      emit('time-up');
+    }
   }, 1000);
 });
 
@@ -60,7 +75,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </span>
 
       <span
-        v-if="isEnded"
+        v-if="isEnded && bidsCount === 0"
+        class="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse"
+      >
+        🔄 Resetting (No Bids Yet)
+      </span>
+      <span
+        v-else-if="isEnded"
         class="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700"
       >
         Auction Closed

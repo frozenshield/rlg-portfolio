@@ -61,7 +61,7 @@ const handleNext = () => {
 
 <template>
   <div class="min-h-screen py-8 font-display">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div class="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <!-- Catalog Page Header -->
       <div
         class="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/60 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-500/25 relative overflow-hidden font-display"

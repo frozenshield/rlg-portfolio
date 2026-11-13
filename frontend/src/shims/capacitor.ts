@@ -3,6 +3,18 @@ export const Capacitor = {
   getPlatform: () => 'web',
 }
 
+export const App = {
+  exitApp: async () => {},
+  addListener: () => ({ remove: () => {} }),
+}
+
+export const StatusBar = {
+  setStyle: async () => {},
+  setBackgroundColor: async () => {},
+  show: async () => {},
+  hide: async () => {},
+}
+
 export enum CameraResultType {
   Uri = 'uri',
   Base64 = 'base64',
@@ -51,3 +63,22 @@ export const Preferences = {
   },
 }
 
+export interface Token {
+  value: string;
+}
+export interface ActionPerformed {
+  actionId: string;
+  notification: any;
+}
+export interface PushNotificationSchema {
+  id?: string;
+  title?: string;
+  body?: string;
+  data?: any;
+}
+
+export const PushNotifications = {
+  requestPermissions: async () => ({ receive: 'granted' }),
+  register: async () => {},
+  addListener: (_event: string, _callback: any) => ({ remove: () => {} }),
+}

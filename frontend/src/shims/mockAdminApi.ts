@@ -4,14 +4,21 @@ const ALL_PATHS = [
   '/admin/dashboard',
   '/admin/orders',
   '/admin/inventory',
+  '/admin/products',
   '/admin/product-upload',
   '/admin/auctions',
+  '/admin/wallet',
+  '/admin/live-breaks',
+  '/admin/preorders',
+  '/admin/gacha-raffles',
   '/admin/customers',
   '/admin/marketing',
+  '/admin/pro-subscription',
   '/admin/pro-subscriptions',
   '/admin/cms',
   '/admin/analytics',
   '/admin/mobile-tools',
+  '/admin/audit-trail',
   '/admin/settings',
 ]
 
@@ -19,14 +26,21 @@ const ALL_CODES = [
   'dashboard',
   'orders',
   'inventory',
+  'products',
   'product-upload',
   'auctions',
+  'wallet',
+  'live-breaks',
+  'preorders',
+  'gacha-raffles',
   'customers',
   'marketing',
+  'pro-subscription',
   'pro-subscriptions',
   'cms',
   'analytics',
   'mobile-tools',
+  'audit-trail',
   'settings',
 ]
 
@@ -1208,6 +1222,303 @@ export function setupMockAdminApi() {
           weight_unit_id: 1,
           weight_unit_code: 'g',
           timezone: 'Asia/Manila',
+        },
+      })
+    }
+
+    // 13. Audit Trail Logs
+    if (path === '/api/admin/audit-logs') {
+      const mockAuditLogs = [
+        {
+          id: 17,
+          admin_user_id: 1,
+          admin_name: 'System Staff',
+          action_type: 'UPDATE',
+          target_type: 'CustomerOrder',
+          target_id: '97',
+          audit_note: 'Updated CustomerOrder #97 [stock_restored: true, tracking: PH8920411]',
+          before_state: { status: 'Pending', tracking: null },
+          after_state: { status: 'Processing', tracking: 'PH8920411' },
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-07 15:46:16',
+        },
+        {
+          id: 16,
+          admin_user_id: 1,
+          admin_name: 'System Staff',
+          action_type: 'UPDATE',
+          target_type: 'CustomerOrder',
+          target_id: '97',
+          audit_note: 'Updated CustomerOrder #97 [payment_status: paid, method: Maya QRPh]',
+          before_state: { payment_status: 'unpaid' },
+          after_state: { payment_status: 'paid' },
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-07 14:38:51',
+        },
+        {
+          id: 15,
+          admin_user_id: 2,
+          admin_name: 'Trisha Carvajal',
+          action_type: 'CREATE',
+          target_type: 'CustomerOrder',
+          target_id: '9',
+          audit_note: 'Created CustomerOrder #9 via Storefront express checkout',
+          before_state: null,
+          after_state: { total: 12990, items_count: 2 },
+          ip_address: '180.191.134.8',
+          created_at: '2026-11-05 18:34:26',
+        },
+        {
+          id: 14,
+          admin_user_id: 1,
+          admin_name: 'Admin Chief',
+          action_type: 'GACHA_CONFIG',
+          target_type: 'gacha_banner',
+          target_id: '4',
+          audit_note: 'Configured Gacha Banner "God Tier Mystery Oripa Drop" with weighted probabilities',
+          before_state: { status: 'draft' },
+          after_state: { status: 'active', pity_counter: 50 },
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-05 18:08:42',
+        },
+        {
+          id: 13,
+          admin_user_id: 1,
+          admin_name: 'System Staff',
+          action_type: 'DELETE',
+          target_type: 'Raffle',
+          target_id: '3',
+          audit_note: 'Deleted Raffle #3 (Expired mock pool without participants)',
+          before_state: { id: 3, title: 'Charizard Test Raffle' },
+          after_state: null,
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-03 09:09:52',
+        },
+        {
+          id: 12,
+          admin_user_id: 1,
+          admin_name: 'Russel Luis Gementiza',
+          action_type: 'BID_CANCELLED',
+          target_type: 'bid',
+          target_id: '41',
+          audit_note: 'Invalid/misplaced bid cancelled by Admin Oversight for lot #1',
+          before_state: { amount: 26000 },
+          after_state: { status: 'cancelled' },
+          ip_address: '127.0.0.1',
+          created_at: '2026-11-02 12:12:34',
+        },
+        {
+          id: 11,
+          admin_user_id: 1,
+          admin_name: 'Russel Luis Gementiza',
+          action_type: 'UPDATE',
+          target_type: 'Auction',
+          target_id: '1',
+          audit_note: 'Updated Auction #1 [current_price: 24500, winner_user_id: 101]',
+          before_state: { current_price: 23000 },
+          after_state: { current_price: 24500 },
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-02 12:12:19',
+        },
+        {
+          id: 10,
+          admin_user_id: 1,
+          admin_name: 'Russel Luis Gementiza',
+          action_type: 'DELETE_TOP_UP',
+          target_type: 'wallet_transaction',
+          target_id: '14',
+          audit_note: 'Deleted top-up #14 for user #4 (Duplicate submission)',
+          before_state: { amount: 1500, status: 'pending' },
+          after_state: null,
+          ip_address: '175.176.184.2',
+          created_at: '2026-11-01 16:44:14',
+        },
+        {
+          id: 9,
+          admin_user_id: 1,
+          admin_name: 'Russel Luis Gementiza',
+          action_type: 'REJECT_TOP_UP',
+          target_type: 'wallet_transaction',
+          target_id: '12',
+          audit_note: 'Payment could not be verified or invalid reference code entered',
+          before_state: { status: 'pending' },
+          after_state: { status: 'rejected' },
+          ip_address: '116.158.37.12',
+          created_at: '2026-11-01 09:34:55',
+        },
+      ]
+
+      return jsonResponse({
+        success: true,
+        data: mockAuditLogs,
+        stats: {
+          total_logs: 17,
+          creates: 1,
+          updates: 6,
+          deletes: 3,
+          wallet_actions: 2,
+        },
+        pagination: {
+          current_page: 1,
+          last_page: 1,
+          total: 17,
+          per_page: 25,
+        },
+        filters: {
+          actions: ['all', 'CREATE', 'UPDATE', 'DELETE', 'BID_CANCELLED', 'GACHA_CONFIG', 'DELETE_TOP_UP', 'REJECT_TOP_UP'],
+          target_types: ['all', 'CustomerOrder', 'Auction', 'Raffle', 'gacha_banner', 'wallet_transaction', 'User'],
+        },
+      })
+    }
+
+    // 14. Wallet Ledger, Live Breaks, Preorders & Gacha/Raffles Mock Data
+    if (path === '/api/admin/wallet/oversight' || path.startsWith('/api/admin/wallet')) {
+      return jsonResponse({
+        success: true,
+        data: {
+          metrics: {
+            total_available_float: 148500,
+            total_held_escrow: 46800,
+            pending_withdrawals_count: 1,
+            pending_withdrawals_amount: 5200,
+            pending_topups_count: 2,
+            pending_topups_amount: 7500,
+          },
+          users: [
+            { id: 1, name: 'Marco Villanueva', email: 'marco.v@gmail.com', wallet_balance: 14250, held_in_escrow: 24500, lifetime_spent: 168400 },
+            { id: 2, name: 'Patricia Lim', email: 'patricia.lim@yahoo.com', wallet_balance: 8900, held_in_escrow: 0, lifetime_spent: 84200 },
+            { id: 3, name: 'Kenji Takahashi', email: 'kenji.t@collectors.ph', wallet_balance: 32500, held_in_escrow: 18900, lifetime_spent: 112500 },
+          ],
+          pending_topups: [
+            { id: 201, user_id: 1, user_name: 'Marco Villanueva', amount: 5000, payment_method: 'GCash', reference_number: 'GCASH-998241', proof_url: 'https://images.pokemontcg.io/sv3pt5/199_hires.png', created_at: '2026-11-12 14:20:00' },
+            { id: 202, user_id: 2, user_name: 'Patricia Lim', amount: 2500, payment_method: 'Maya', reference_number: 'MAYA-110294', proof_url: 'https://images.pokemontcg.io/swsh7/215_hires.png', created_at: '2026-11-12 16:45:00' },
+          ],
+          withdrawals: [
+            { id: 101, user_id: 3, user_name: 'Kenji Takahashi', amount: 5200, status: 'pending', bank_name: 'BDO Unibank', account_number: '001928374615', created_at: '2026-11-12 11:30:00' },
+          ],
+        },
+      })
+    }
+
+    if (path.startsWith('/api/admin/live-breaks') || path === '/api/live-breaks') {
+      return jsonResponse({
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: '🔥 Scarlet & Violet 151 Master Case Break #08',
+            subtitle: 'Random Pack Break with Metal Mew & SIR Chase Guarantee',
+            series_name: 'Pokémon Scarlet & Violet',
+            status: 'live',
+            stream_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            stream_embed_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            cover_image: 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
+            total_slots: 36,
+            claimed_slots_count: 32,
+            price_per_slot: 450,
+            scheduled_at: '2026-11-13 20:00:00',
+          },
+          {
+            id: 2,
+            title: '🏴‍☠️ One Piece OP-05 Awakening of the New Era Case Break',
+            subtitle: 'Manga Luffy Gear 5 Chase • All Hits Sleeved and Toploaded',
+            series_name: 'One Piece Card Game',
+            status: 'upcoming',
+            cover_image: 'https://images.pokemontcg.io/swsh7/215_hires.png',
+            total_slots: 24,
+            claimed_slots_count: 14,
+            price_per_slot: 850,
+            scheduled_at: '2026-11-15 19:30:00',
+          },
+        ],
+      })
+    }
+
+    if (path.startsWith('/api/admin/preorders') || path === '/api/preorders') {
+      return jsonResponse({
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: 'Pokémon TCG: Terastal Festival [sv8a] Japanese Booster Box',
+            series_name: 'High-Class Pack 2026',
+            description: 'Official guaranteed SAR/SR per box with high-rarity Eevee Evolutions.',
+            image_url: 'https://images.pokemontcg.io/sv8/238_hires.png',
+            release_date: '2026-12-06',
+            cutoff_date: '2026-11-25',
+            full_price: 4950,
+            deposit_price: 1500,
+            allocation_limit: 50,
+            allocated_count: 42,
+            status: 'open',
+          },
+          {
+            id: 2,
+            title: 'One Piece Card Game: Emperors in the New World [OP-09]',
+            series_name: 'Bandai Official TCG',
+            description: 'Four Emperors themed booster box with Shanks and Buggy Manga Rares.',
+            image_url: 'https://images.pokemontcg.io/swsh7/215_hires.png',
+            release_date: '2026-11-30',
+            cutoff_date: '2026-11-20',
+            full_price: 5800,
+            deposit_price: 2000,
+            allocation_limit: 40,
+            allocated_count: 40,
+            status: 'sold_out',
+          },
+        ],
+      })
+    }
+
+    if (path.startsWith('/api/admin/gacha') || path.startsWith('/api/gacha')) {
+      return jsonResponse({
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: '✨ God Tier Grail Oripa: Charizard ex SIR or PSA 10 Moonbreon',
+            price_per_pull: 2500,
+            total_tickets: 100,
+            remaining_tickets: 34,
+            banner_image: 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
+            status: 'active',
+            prizes: [
+              { id: 1, name: 'Charizard ex 199/165 SIR (PSA 10)', rarity: 'SSR', card_condition: 'PSA 10 GEM MINT', estimated_value: 24500, buyback_credit_value: 20000, is_grand_prize: true },
+              { id: 2, name: 'Umbreon VMAX 215/203 Alt Art (NM)', rarity: 'SSR', card_condition: 'Near Mint', estimated_value: 46800, buyback_credit_value: 40000, is_grand_prize: true },
+            ],
+          },
+        ],
+      })
+    }
+
+    if (path.startsWith('/api/admin/raffles') || path.startsWith('/api/raffles')) {
+      return jsonResponse({
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: '🎯 100-Slot Grail Roulette: PSA 10 Pikachu ex 238/191 SIR',
+            price_per_slot: 250,
+            total_slots: 100,
+            claimed_slots_count: 88,
+            status: 'open',
+            image_url: 'https://images.pokemontcg.io/sv8/238_hires.png',
+          },
+        ],
+      })
+    }
+
+    if (path === '/api/wallet' || path === '/api/user/wallet') {
+      return jsonResponse({
+        success: true,
+        data: {
+          balance: 14250,
+          held_in_escrow: 24500,
+          currency: 'PHP',
+          transactions: [
+            { id: 1, type: 'topup', amount: 5000, status: 'completed', description: 'GCash Top-Up', created_at: '2026-11-10 14:00' },
+            { id: 2, type: 'bid_escrow', amount: -24500, status: 'held', description: 'Escrow for Auction #1 Charizard ex', created_at: '2026-11-12 18:30' },
+          ],
         },
       })
     }

@@ -204,7 +204,7 @@ onMounted(() => {
     </div>
 
     <!-- 1. Core Financial Breakdown Cards (6 Comprehensive Cards) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
       <!-- Gross Sales -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
         <div class="flex items-center justify-between">
@@ -508,7 +508,7 @@ onMounted(() => {
         <span class="text-xs font-semibold text-slate-400">GCash &bull; Maya &bull; Cards &bull; COD</span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 pt-2">
         <div
           v-for="g in paymentGatewayDistribution"
           :key="g.method"

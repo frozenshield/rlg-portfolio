@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { useAuctionStore } from '@/modules/auctions/auction.store';
 import { useCatalogStore } from '@/modules/catalog/catalog.store';
 import type { AuctionListItem, BidRecord } from '@/modules/auctions/types';
@@ -13,6 +15,7 @@ const catalogStore = useCatalogStore();
 
 // UI States
 const isModalOpen = ref(false);
+const editingAuctionId = ref<number | null>(null);
 const isLedgerModalOpen = ref(false);
 const selectedAuctionForLedger = ref<AuctionListItem | null>(null);
 const ledgerBids = ref<BidRecord[]>([]);
@@ -29,6 +32,8 @@ const itemName = ref('');
 const description = ref('');
 const startingPrice = ref<number>(500);
 const bidIncrement = ref<number>(50);
+const buyItNowPrice = ref<number | null>(null);
+const reservePrice = ref<number | null>(null);
 const endTime = ref('');
 const imageUrl = ref('');
 const selectedImageFile = ref<File | null>(null);
@@ -42,6 +47,29 @@ const aiError = ref('');
 const aiSuccess = ref('');
 const isDraggingOver = ref(false);
 const auctionFileInput = ref<HTMLInputElement | null>(null);
+const directCameraInput = ref<HTMLInputElement | null>(null);
+
+// ─── Camera & 500KB Strict Compression State ─────────────────────────────────
+const isNative = ref(Capacitor.isNativePlatform());
+const photoCaptureMode = ref<'camera' | 'upload' | 'url'>('camera');
+const isCameraActive = ref(false);
+const isCameraStarting = ref(false);
+const cameraStream = ref<MediaStream | null>(null);
+const videoRef = ref<HTMLVideoElement | null>(null);
+const cameraFacingMode = ref<'environment' | 'user'>('environment');
+const torchSupported = ref(false);
+const torchEnabled = ref(false);
+const cameraFlash = ref(false);
+const cameraError = ref('');
+const compressedMetrics = ref<{
+  finalKb: number;
+  width: number;
+  height: number;
+  quality: number;
+  originalKb?: number;
+} | null>(null);
+
+const MAX_AUCTION_FILE_SIZE = 500 * 1024; // 500 KB limit ceiling
 
 const triggerFileInput = () => {
   auctionFileInput.value?.click();
@@ -145,18 +173,244 @@ const runAiAnalysis = async (source: File | string) => {
   }
 };
 
+// ─── Image Processing & Strict ≤ 500 KB Compression ──────────────────────────
+const compressAndProcessImage = async (source: File | Blob | string): Promise<File | null> => {
+  try {
+    let imgSourceUrl = '';
+    let originalSizeKb = 0;
+
+    if (source instanceof File || source instanceof Blob) {
+      originalSizeKb = Math.round(source.size / 1024);
+      imgSourceUrl = URL.createObjectURL(source);
+    } else {
+      imgSourceUrl = source;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load image for compression.'));
+      img.src = imgSourceUrl;
+    });
+
+    // 1. Calculate downscaled dimensions (max dimension 1600px for auction lots)
+    const MAX_DIM = 1600;
+    let width = img.naturalWidth || img.width;
+    let height = img.naturalHeight || img.height;
+
+    if (width > MAX_DIM || height > MAX_DIM) {
+      if (width > height) {
+        height = Math.round((height * MAX_DIM) / width);
+        width = MAX_DIM;
+      } else {
+        width = Math.round((width * MAX_DIM) / height);
+        height = MAX_DIM;
+      }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not initialize canvas context.');
+
+    ctx.drawImage(img, 0, 0, width, height);
+
+    // 2. Iterative canvasToBlob loop targeting strictly <= MAX_AUCTION_FILE_SIZE (500 KB)
+    const toBlobAsync = (c: HTMLCanvasElement, q: number): Promise<Blob | null> =>
+      new Promise((res) => c.toBlob(res, 'image/jpeg', q));
+
+    let quality = 0.85;
+    let blob = await toBlobAsync(canvas, quality);
+
+    while (blob && blob.size > MAX_AUCTION_FILE_SIZE && quality > 0.35) {
+      quality = Math.max(0.35, quality - 0.08);
+      blob = await toBlobAsync(canvas, quality);
+    }
+
+    // If still over 500 KB, perform a dimension reduction pass
+    if (blob && blob.size > MAX_AUCTION_FILE_SIZE) {
+      const reducedCanvas = document.createElement('canvas');
+      reducedCanvas.width = Math.round(canvas.width * 0.75);
+      reducedCanvas.height = Math.round(canvas.height * 0.75);
+      const reducedCtx = reducedCanvas.getContext('2d');
+      if (reducedCtx) {
+        reducedCtx.drawImage(canvas, 0, 0, reducedCanvas.width, reducedCanvas.height);
+        quality = 0.75;
+        blob = await toBlobAsync(reducedCanvas, quality);
+        while (blob && blob.size > MAX_AUCTION_FILE_SIZE && quality > 0.35) {
+          quality = Math.max(0.35, quality - 0.08);
+          blob = await toBlobAsync(reducedCanvas, quality);
+        }
+      }
+    }
+
+    if (!blob) throw new Error('Canvas compression output was empty.');
+
+    const fileName = `auction_lot_${Date.now()}.jpg`;
+    const compressedFile = new File([blob], fileName, { type: 'image/jpeg' });
+
+    selectedImageFile.value = compressedFile;
+    if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreviewUrl.value);
+    }
+    imagePreviewUrl.value = URL.createObjectURL(compressedFile);
+    imageUrl.value = '';
+
+    compressedMetrics.value = {
+      finalKb: Math.round(compressedFile.size / 1024),
+      width,
+      height,
+      quality: Math.round(quality * 100),
+      originalKb: originalSizeKb || undefined,
+    };
+
+    // AutoVision AI Auto-Caption
+    if (autoFillWithAi.value) {
+      await runAiAnalysis(compressedFile);
+    }
+
+    return compressedFile;
+  } catch (err: any) {
+    console.error('Compression error:', err);
+    showToast(err.message || 'Image compression failed.', 'error');
+    return null;
+  }
+};
+
+// ─── Live Camera & Direct Photo Viewfinder ────────────────────────────────────
+const startLiveCamera = async () => {
+  cameraError.value = '';
+  isCameraStarting.value = true;
+  try {
+    if (cameraStream.value) {
+      stopLiveCamera();
+    }
+    const constraints: MediaStreamConstraints = {
+      video: {
+        facingMode: cameraFacingMode.value,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    cameraStream.value = stream;
+    isCameraActive.value = true;
+
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream;
+      await videoRef.value.play().catch(() => {});
+    }
+
+    // Check torch capability
+    const track = stream.getVideoTracks()[0];
+    if (track && 'getCapabilities' in track) {
+      const capabilities = (track as any).getCapabilities?.() || {};
+      torchSupported.value = Boolean(capabilities.torch);
+    } else {
+      torchSupported.value = false;
+    }
+  } catch (err: any) {
+    console.warn('Camera stream failed:', err);
+    cameraError.value = err.message || 'Could not access camera. Please allow camera permissions.';
+    isCameraActive.value = false;
+  } finally {
+    isCameraStarting.value = false;
+  }
+};
+
+const stopLiveCamera = () => {
+  if (cameraStream.value) {
+    cameraStream.value.getTracks().forEach((t) => t.stop());
+    cameraStream.value = null;
+  }
+  isCameraActive.value = false;
+  torchEnabled.value = false;
+};
+
+const flipCamera = async () => {
+  cameraFacingMode.value = cameraFacingMode.value === 'environment' ? 'user' : 'environment';
+  await startLiveCamera();
+};
+
+const toggleTorch = async () => {
+  if (!cameraStream.value || !torchSupported.value) return;
+  const track = cameraStream.value.getVideoTracks()[0];
+  if (!track) return;
+  try {
+    torchEnabled.value = !torchEnabled.value;
+    await (track as any).applyConstraints({
+      advanced: [{ torch: torchEnabled.value }],
+    });
+  } catch (err) {
+    console.warn('Torch toggle error:', err);
+  }
+};
+
+const snapLiveCameraPhoto = async () => {
+  if (!videoRef.value || !cameraStream.value) return;
+  cameraFlash.value = true;
+  setTimeout(() => {
+    cameraFlash.value = false;
+  }, 250);
+
+  const video = videoRef.value;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  stopLiveCamera();
+
+  canvas.toBlob(async (blob) => {
+    if (blob) {
+      await compressAndProcessImage(blob);
+    }
+  }, 'image/jpeg', 0.90);
+};
+
+// Direct Device Shutter (Capacitor / Input Fallback)
+const captureWithDeviceCamera = async () => {
+  if (isNative.value) {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera,
+      });
+      if (photo.webPath) {
+        const res = await fetch(photo.webPath);
+        const blob = await res.blob();
+        await compressAndProcessImage(blob);
+      }
+    } catch (err: any) {
+      if (err.message !== 'User cancelled photos app') {
+        showToast(err.message || 'Device camera error', 'error');
+      }
+    }
+  } else {
+    directCameraInput.value?.click();
+  }
+};
+
+const handleDirectCameraCapture = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    await compressAndProcessImage(input.files[0]);
+  }
+};
+
 // Handle file input upload
 const handleFileChange = async (e: Event) => {
   const input = e.target as HTMLInputElement;
   if (input.files && input.files[0]) {
-    const file = input.files[0];
-    selectedImageFile.value = file;
-    imagePreviewUrl.value = URL.createObjectURL(file);
-    imageUrl.value = '';
-
-    if (autoFillWithAi.value) {
-      await runAiAnalysis(file);
-    }
+    await compressAndProcessImage(input.files[0]);
   }
 };
 
@@ -164,14 +418,7 @@ const handleFileChange = async (e: Event) => {
 const handleDrop = async (e: DragEvent) => {
   isDraggingOver.value = false;
   if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
-    const file = e.dataTransfer.files[0];
-    selectedImageFile.value = file;
-    imagePreviewUrl.value = URL.createObjectURL(file);
-    imageUrl.value = '';
-
-    if (autoFillWithAi.value) {
-      await runAiAnalysis(file);
-    }
+    await compressAndProcessImage(e.dataTransfer.files[0]);
   }
 };
 
@@ -182,7 +429,7 @@ const triggerReanalyzeAi = async () => {
   } else if (imageUrl.value.trim()) {
     await runAiAnalysis(imageUrl.value.trim());
   } else {
-    showToast('Please upload or provide an image first to analyze.', 'error');
+    showToast('Please take or upload an image first to analyze.', 'error');
   }
 };
 
@@ -192,6 +439,7 @@ const analyzeUrlWithAi = async () => {
   const url = imageUrl.value.trim();
   imagePreviewUrl.value = url;
   selectedImageFile.value = null;
+  compressedMetrics.value = null;
   if (autoFillWithAi.value) {
     await runAiAnalysis(url);
   }
@@ -207,6 +455,7 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 
 // Open Create Modal
 const openCreateModal = () => {
+  editingAuctionId.value = null;
   itemName.value = '';
   description.value = '';
   startingPrice.value = 500;
@@ -215,17 +464,63 @@ const openCreateModal = () => {
   imageUrl.value = '';
   imagePreviewUrl.value = '';
   selectedImageFile.value = null;
+  compressedMetrics.value = null;
   aiError.value = '';
   aiSuccess.value = '';
   isAnalyzingWithAi.value = false;
+  photoCaptureMode.value = 'camera';
   initDefaultEndTime();
   isModalOpen.value = true;
 };
 
-// Submit New Auction
-const submitCreateAuction = async () => {
+// Open Edit/Adjust Modal
+const openEditModal = (item: AuctionListItem) => {
+  editingAuctionId.value = item.id;
+  itemName.value = item.item_name;
+  description.value = item.description || '';
+  startingPrice.value = Number(item.starting_price) || 500;
+  bidIncrement.value = Number(item.bid_increment) || 50;
+  selectedProductId.value = '';
+  productMode.value = 'custom';
+
+  // Format existing end time for datetime-local
+  if (item.end_time) {
+    const d = new Date(item.end_time);
+    const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+    endTime.value = localIso;
+  } else {
+    initDefaultEndTime();
+  }
+
+  imageUrl.value = item.image_url || '';
+  imagePreviewUrl.value = item.image_url ? resolveStorageUrl(item.image_url) : '';
+  selectedImageFile.value = null;
+  compressedMetrics.value = null;
+  aiError.value = '';
+  aiSuccess.value = '';
+  isAnalyzingWithAi.value = false;
+  photoCaptureMode.value = item.image_url ? 'upload' : 'camera';
+  isModalOpen.value = true;
+};
+
+// Close Modal
+const closeAuctionModal = () => {
+  stopLiveCamera();
+  isModalOpen.value = false;
+  editingAuctionId.value = null;
+};
+
+// Clean up camera on unmount
+onBeforeUnmount(() => {
+  stopLiveCamera();
+});
+
+// Submit Form (Create or Update)
+const submitAuctionForm = async () => {
   if (!itemName.value.trim()) {
-    showToast('Please enter or select a product item name.', 'error');
+    showToast('Please enter or capture an item title.', 'error');
     return;
   }
   if (!startingPrice.value || startingPrice.value <= 0) {
@@ -247,6 +542,12 @@ const submitCreateAuction = async () => {
     formData.append('description', description.value.trim());
     formData.append('starting_price', String(startingPrice.value));
     formData.append('bid_increment', String(bidIncrement.value || 50));
+    if (buyItNowPrice.value && buyItNowPrice.value > 0) {
+      formData.append('buy_it_now_price', String(buyItNowPrice.value));
+    }
+    if (reservePrice.value && reservePrice.value > 0) {
+      formData.append('reserve_price', String(reservePrice.value));
+    }
     formData.append('end_time', new Date(endTime.value).toISOString());
 
     if (selectedImageFile.value) {
@@ -255,11 +556,17 @@ const submitCreateAuction = async () => {
       formData.append('image_url', imageUrl.value.trim());
     }
 
-    await auctionStore.createAuction(formData);
-    isModalOpen.value = false;
-    showToast(`Auction lot "${itemName.value}" is now live!`);
+    if (editingAuctionId.value) {
+      await auctionStore.updateAuction(editingAuctionId.value, formData);
+      closeAuctionModal();
+      showToast(`Auction lot #${editingAuctionId.value} updated successfully!`);
+    } else {
+      await auctionStore.createAuction(formData);
+      closeAuctionModal();
+      showToast(`Auction lot "${itemName.value}" is now live!`);
+    }
   } catch (err: any) {
-    showToast(err.message || 'Failed to create auction.', 'error');
+    showToast(err.message || 'Failed to save auction lot.', 'error');
   }
 };
 
@@ -278,6 +585,60 @@ const openLedgerModal = async (auctionItem: AuctionListItem) => {
     ledgerBids.value = [];
   } finally {
     isLedgerLoading.value = false;
+  }
+};
+
+// Admin Cancel/Delete Bid Modal with Security Captcha
+const isCancelBidModalOpen = ref(false);
+const bidToCancel = ref<BidRecord | null>(null);
+const cancelBidReason = ref('Invalid / mistaken bid cancelled by Admin Oversight');
+const cancelBidCaptchaCode = ref('');
+const cancelBidCaptchaInput = ref('');
+const isSubmittingCancelBid = ref(false);
+
+const generateCaptcha = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 5; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  cancelBidCaptchaCode.value = code;
+  cancelBidCaptchaInput.value = '';
+};
+
+const openCancelBidModal = (bid: BidRecord) => {
+  bidToCancel.value = bid;
+  cancelBidReason.value = 'Invalid / mistaken bid cancelled by Admin Oversight';
+  generateCaptcha();
+  isCancelBidModalOpen.value = true;
+};
+
+const executeAdminCancelBid = async () => {
+  if (!selectedAuctionForLedger.value || !bidToCancel.value) return;
+  if (cancelBidCaptchaInput.value.trim().toUpperCase() !== cancelBidCaptchaCode.value) {
+    showToast('Security Captcha does not match. Please verify and try again.', 'error');
+    return;
+  }
+  if (!cancelBidReason.value.trim()) {
+    showToast('Please provide an audit reason for cancelling this bid.', 'error');
+    return;
+  }
+
+  isSubmittingCancelBid.value = true;
+  try {
+    await auctionStore.adminCancelBid(
+      selectedAuctionForLedger.value.id,
+      bidToCancel.value.id,
+      cancelBidReason.value.trim()
+    );
+    await openLedgerModal(selectedAuctionForLedger.value);
+    isCancelBidModalOpen.value = false;
+    showToast(`Bid #${bidToCancel.value.id} deleted/cancelled and wallet hold released successfully!`);
+    await loadAuctions();
+  } catch (err: any) {
+    showToast(err.message || 'Could not cancel bid.', 'error');
+  } finally {
+    isSubmittingCancelBid.value = false;
   }
 };
 
@@ -650,6 +1011,14 @@ onMounted(async () => {
               <!-- Actions -->
               <td class="py-4 px-4 text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <button
+                    @click="openEditModal(item)"
+                    title="Adjust Auction Details"
+                    class="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-emerald-950/40 border border-emerald-800/40 transition-colors"
+                  >
+                    Adjust
+                  </button>
+
                   <a
                     :href="`/auctions/${item.id}`"
                     target="_blank"
@@ -704,17 +1073,17 @@ onMounted(async () => {
         <div class="p-6 bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 border-b border-gray-800 flex items-center justify-between">
           <div>
             <h2 class="text-xl font-black text-white flex items-center gap-2">
-              <span>🔨</span>
-              Launch Product Auction Lot
+              <span>{{ editingAuctionId ? '⚙️' : '🔨' }}</span>
+              {{ editingAuctionId ? `Adjust Auction Lot #${editingAuctionId}` : 'Launch Product Auction Lot' }}
             </h2>
             <p class="text-xs text-gray-400 mt-1">
-              Select product, configure desired starting price, increment, and ending countdown.
+              {{ editingAuctionId ? 'Adjust lot price, duration, photo, or let AutoVision AI re-caption details.' : 'Select product, configure desired starting price, increment, and ending countdown.' }}
             </p>
           </div>
           <button
-            @click="isModalOpen = false"
+            @click="closeAuctionModal"
             class="w-11 h-11 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center transition-colors text-sm font-bold cursor-pointer"
-            aria-label="Close auction creation modal"
+            aria-label="Close auction modal"
           >
             ✕
           </button>
@@ -941,6 +1310,40 @@ onMounted(async () => {
               </div>
               <p class="text-[11px] text-gray-500 mt-1">Default 50 PHP per counter-bid.</p>
             </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">
+                Buy It Now Price (Optional ₱ PHP)
+              </label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-gray-400 font-bold">₱</span>
+                <input
+                  v-model.number="buyItNowPrice"
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder="Optional instant buyout"
+                  class="w-full bg-gray-900 border border-gray-700 rounded-xl pl-8 pr-4 py-2.5 text-base font-bold text-white focus:outline-none focus:border-amber-500 font-mono"
+                />
+              </div>
+              <p class="text-[11px] text-gray-500 mt-1">Instantly closes auction upon purchase.</p>
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-purple-400 mb-1.5">
+                Hidden Reserve Price (Optional ₱ PHP)
+              </label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-gray-400 font-bold">₱</span>
+                <input
+                  v-model.number="reservePrice"
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder="Optional hidden threshold"
+                  class="w-full bg-gray-900 border border-gray-700 rounded-xl pl-8 pr-4 py-2.5 text-base font-bold text-white focus:outline-none focus:border-purple-500 font-mono"
+                />
+              </div>
+              <p class="text-[11px] text-gray-500 mt-1">Hidden minimum threshold required to win.</p>
+            </div>
           </div>
 
           <!-- Ending Date & Time (Anti-Sniping Engine) -->
@@ -1013,18 +1416,62 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Product Image Upload / URL with AutoVision Dropzone -->
+          <!-- Product Image & Live Picturing / AutoVision Engine -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <label class="block text-xs font-bold uppercase tracking-wider text-gray-400">
-                Product Image &amp; AutoVision Trigger
+              <label class="block text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <span>📸</span>
+                <span>Lot Photo (Live Camera &bull; Auto-Caption &bull; &le; 500 KB)</span>
               </label>
               <span v-if="autoFillWithAi" class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-                <span>✨</span> Auto-fills title &amp; description
+                <span>✨</span> AutoVision Auto-Caption ON
               </span>
             </div>
 
-            <!-- Hidden File Input -->
+            <!-- Mode Selector Tabs (Live Camera, Upload, URL) -->
+            <div class="flex items-center gap-2 p-1 bg-gray-950 rounded-xl border border-gray-800">
+              <button
+                type="button"
+                @click="photoCaptureMode = 'camera'"
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                :class="
+                  photoCaptureMode === 'camera'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                "
+              >
+                <span>📷</span>
+                <span>Live Camera Snap</span>
+              </button>
+              <button
+                type="button"
+                @click="photoCaptureMode = 'upload'; stopLiveCamera();"
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                :class="
+                  photoCaptureMode === 'upload'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                "
+              >
+                <span>📁</span>
+                <span>Upload File</span>
+              </button>
+              <button
+                type="button"
+                @click="photoCaptureMode = 'url'; stopLiveCamera();"
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                :class="
+                  photoCaptureMode === 'url'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-gray-400 hover:text-white'
+                "
+              >
+                <span>🔗</span>
+                <span>Direct URL</span>
+              </button>
+            </div>
+
+            <!-- Hidden System Inputs -->
             <input
               ref="auctionFileInput"
               type="file"
@@ -1032,10 +1479,194 @@ onMounted(async () => {
               class="hidden"
               @change="handleFileChange"
             />
+            <input
+              ref="directCameraInput"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              class="hidden"
+              @change="handleDirectCameraCapture"
+            />
 
-            <!-- Drag & Drop / Upload Box -->
+            <!-- LIVE CAMERA VIEWPORT (Active Camera Stream) -->
+            <div v-if="photoCaptureMode === 'camera' && isCameraActive" class="relative rounded-2xl overflow-hidden bg-black border-2 border-emerald-500 shadow-2xl">
+              <!-- Video Viewfinder Stream -->
+              <video
+                ref="videoRef"
+                autoplay
+                playsinline
+                muted
+                class="w-full h-80 sm:h-96 object-cover bg-black"
+              ></video>
+
+              <!-- Viewfinder Reticle / Framing Guide -->
+              <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
+                <div class="w-full h-full border-2 border-dashed border-emerald-400/60 rounded-2xl relative flex items-center justify-center">
+                  <div class="w-6 h-6 border-t-2 border-l-2 border-emerald-400 absolute top-2 left-2"></div>
+                  <div class="w-6 h-6 border-t-2 border-r-2 border-emerald-400 absolute top-2 right-2"></div>
+                  <div class="w-6 h-6 border-b-2 border-l-2 border-emerald-400 absolute bottom-2 left-2"></div>
+                  <div class="w-6 h-6 border-b-2 border-r-2 border-emerald-400 absolute bottom-2 right-2"></div>
+                  <div class="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-emerald-500/50 text-[10px] font-mono font-bold text-emerald-300">
+                    AutoVision AI Viewfinder &bull; Center Item
+                  </div>
+                </div>
+              </div>
+
+              <!-- Camera Flash Effect -->
+              <div
+                v-if="cameraFlash"
+                class="absolute inset-0 bg-white pointer-events-none transition-opacity duration-200"
+              ></div>
+
+              <!-- Viewfinder Controls Overlay -->
+              <div class="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  v-if="torchSupported"
+                  type="button"
+                  @click="toggleTorch"
+                  class="p-2.5 rounded-full backdrop-blur-md transition-colors text-sm"
+                  :class="torchEnabled ? 'bg-amber-500 text-black font-bold' : 'bg-black/60 text-white hover:bg-black/80'"
+                  title="Toggle Torch / Flashlight"
+                >
+                  ⚡
+                </button>
+                <button
+                  type="button"
+                  @click="flipCamera"
+                  class="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors text-sm"
+                  title="Flip Camera (Front/Back)"
+                >
+                  🔄
+                </button>
+                <button
+                  type="button"
+                  @click="stopLiveCamera"
+                  class="p-2.5 rounded-full bg-black/60 hover:bg-rose-900/80 text-white backdrop-blur-md transition-colors text-sm"
+                  title="Close Camera"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <!-- Shutter Bar -->
+              <div class="absolute bottom-4 inset-x-0 flex flex-col items-center justify-center gap-2 px-4 pointer-events-auto">
+                <button
+                  type="button"
+                  @click="snapLiveCameraPhoto"
+                  class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm uppercase tracking-wider shadow-2xl flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer border border-white/20"
+                >
+                  <span class="text-lg">📸</span>
+                  <span>SNAP PHOTO &amp; AUTO-CAPTION (≤ 500 KB)</span>
+                </button>
+                <p class="text-[10px] text-gray-200 drop-shadow-md font-semibold">
+                  Instantly compresses under 500 KB &amp; feeds into AutoVision AI
+                </p>
+              </div>
+            </div>
+
+            <!-- INACTIVE CAMERA STANDBY PROMPT -->
             <div
-              class="p-5 border-2 border-dashed rounded-2xl text-center space-y-3 transition-all cursor-pointer relative"
+              v-else-if="photoCaptureMode === 'camera' && !isCameraActive && !imagePreviewUrl"
+              class="p-6 border-2 border-dashed border-emerald-500/40 rounded-2xl bg-gray-950/80 text-center space-y-4"
+            >
+              <div class="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl shadow-inner">
+                📷
+              </div>
+              <div class="space-y-1">
+                <h3 class="text-sm font-black text-white">Live Picturing &amp; Direct Camera</h3>
+                <p class="text-xs text-gray-400 max-w-sm mx-auto">
+                  Take a live photo of your trading card or collectible. AI will inspect it to auto-caption the auction title and description, compressed strictly under 500 KB.
+                </p>
+              </div>
+
+              <div v-if="cameraError" class="p-2.5 bg-rose-950/60 border border-rose-700/50 rounded-xl text-rose-300 text-xs">
+                {{ cameraError }}
+              </div>
+
+              <div class="flex flex-wrap items-center justify-center gap-3 pt-1">
+                <button
+                  type="button"
+                  @click="startLiveCamera"
+                  :disabled="isCameraStarting"
+                  class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span v-if="isCameraStarting" class="animate-spin text-sm">⏳</span>
+                  <span v-else class="text-base">📹</span>
+                  <span>{{ isCameraStarting ? 'Starting Viewfinder...' : 'Open Live Camera Viewfinder' }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  @click="captureWithDeviceCamera"
+                  class="px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs flex items-center gap-2 border border-gray-700 transition-colors cursor-pointer"
+                >
+                  <span>📱</span>
+                  <span>Native Device Shutter</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- CAPTURED / LOADED PHOTO PREVIEW CARD -->
+            <div
+              v-if="imagePreviewUrl && (!isCameraActive || photoCaptureMode !== 'camera')"
+              class="p-4 bg-gray-950/90 border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row items-center gap-4 shadow-xl"
+            >
+              <div class="w-28 h-28 rounded-xl overflow-hidden bg-black border border-gray-700 flex-shrink-0 relative group shadow-lg">
+                <img :src="resolveStorageUrl(imagePreviewUrl)" alt="Auction Preview" class="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  @click="imagePreviewUrl = ''; imageUrl = ''; selectedImageFile = null; compressedMetrics = null;"
+                  class="absolute inset-0 bg-black/80 text-rose-300 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold transition-opacity"
+                  title="Remove Photo"
+                >
+                  Remove ✕
+                </button>
+              </div>
+
+              <div class="text-left space-y-2 flex-1 w-full">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    ✓ Photo Ready &bull; Strictly ≤ 500 KB
+                  </span>
+                  <span
+                    v-if="compressedMetrics"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                  >
+                    ⚡ {{ compressedMetrics.finalKb }} KB ({{ compressedMetrics.width }}&times;{{ compressedMetrics.height }})
+                  </span>
+                </div>
+
+                <p class="text-xs text-gray-300 font-medium truncate max-w-sm">
+                  {{ selectedImageFile ? selectedImageFile.name : (imageUrl || 'Direct image link') }}
+                </p>
+
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    @click="triggerReanalyzeAi"
+                    :disabled="isAnalyzingWithAi"
+                    class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <span v-if="isAnalyzingWithAi" class="animate-spin text-[10px]">⏳</span>
+                    <span v-else>✨</span>
+                    <span>{{ isAnalyzingWithAi ? 'Analyzing...' : 'Re-caption with AutoVision' }}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    @click="photoCaptureMode === 'camera' ? startLiveCamera() : triggerFileInput()"
+                    class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    {{ photoCaptureMode === 'camera' ? 'Retake Photo 📸' : 'Change Image' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- UPLOAD FILE TAB DROPZONE -->
+            <div
+              v-else-if="photoCaptureMode === 'upload'"
+              class="p-6 border-2 border-dashed rounded-2xl text-center space-y-3 transition-all cursor-pointer relative"
               :class="[
                 isDraggingOver
                   ? 'border-emerald-500 bg-emerald-950/40 scale-[0.99]'
@@ -1047,87 +1678,44 @@ onMounted(async () => {
               @drop.prevent="handleDrop"
               @click="triggerFileInput"
             >
-              <div v-if="imagePreviewUrl" class="flex flex-col sm:flex-row items-center justify-center gap-4 py-1" @click.stop>
-                <div class="w-24 h-24 rounded-2xl overflow-hidden bg-black border border-gray-700 flex-shrink-0 relative group shadow-lg">
-                  <img :src="resolveStorageUrl(imagePreviewUrl)" alt="Preview" class="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    @click="imagePreviewUrl = ''; imageUrl = ''; selectedImageFile = null;"
-                    class="absolute inset-0 bg-black/75 text-rose-300 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold transition-opacity"
-                    title="Remove Photo"
-                  >
-                    Remove ✕
-                  </button>
-                </div>
-
-                <div class="text-left space-y-2">
-                  <div>
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      ✓ Image Ready for Auction
-                    </span>
-                    <p class="text-xs text-gray-300 font-medium mt-1 truncate max-w-xs">
-                      {{ selectedImageFile ? selectedImageFile.name : (imageUrl || 'Direct image link') }}
-                    </p>
-                  </div>
-
-                  <div class="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      @click="triggerReanalyzeAi"
-                      :disabled="isAnalyzingWithAi"
-                      class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      <span v-if="isAnalyzingWithAi" class="animate-spin text-[10px]">⏳</span>
-                      <span v-else>✨</span>
-                      <span>{{ isAnalyzingWithAi ? 'Analyzing...' : 'Re-analyze with AutoVision' }}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      @click="triggerFileInput"
-                      class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      Change Photo
-                    </button>
-                  </div>
-                </div>
+              <div class="w-12 h-12 mx-auto rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-xs">
+                📁
               </div>
-
-              <div v-else>
-                <div class="w-12 h-12 mx-auto rounded-full bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-2xl shadow-xs">
-                  📸
-                </div>
-                <div class="mt-2">
-                  <p class="text-xs font-bold text-gray-200">
-                    <span class="text-emerald-400 underline font-black">Click to upload item photo</span> or drag &amp; drop here
-                  </p>
-                  <p class="text-[11px] text-gray-400 mt-0.5">
-                    PNG, JPG, WEBP &bull; AutoVision AI automatically detects lot name &amp; description
-                  </p>
-                </div>
+              <div>
+                <p class="text-xs font-bold text-gray-200">
+                  <span class="text-emerald-400 underline font-black">Click to upload image file</span> or drag &amp; drop here
+                </p>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                  Automatically downscaled and compressed to &le; 500 KB &bull; Auto-captioned with AutoVision AI
+                </p>
               </div>
+            </div>
 
-              <!-- Direct URL Fallback -->
-              <div class="pt-2 max-w-md mx-auto" @click.stop>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model="imageUrl"
-                    type="url"
-                    placeholder="Or paste direct image URL (https://...)"
-                    class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                    @keyup.enter="analyzeUrlWithAi"
-                  />
-                  <button
-                    type="button"
-                    @click="analyzeUrlWithAi"
-                    :disabled="isAnalyzingWithAi || !imageUrl.trim()"
-                    class="px-3 py-2 rounded-xl bg-gray-800 hover:bg-emerald-600 text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                    title="Load URL and analyze with AutoVision AI"
-                  >
-                    <span>Use URL</span>
-                    <span v-if="autoFillWithAi">✨</span>
-                  </button>
-                </div>
+            <!-- DIRECT URL TAB -->
+            <div
+              v-else-if="photoCaptureMode === 'url'"
+              class="p-4 bg-gray-950/70 rounded-2xl border border-gray-800 space-y-3"
+            >
+              <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                External Image URL
+              </label>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model="imageUrl"
+                  type="url"
+                  placeholder="Paste direct HTTPS image link..."
+                  class="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                  @keyup.enter="analyzeUrlWithAi"
+                />
+                <button
+                  type="button"
+                  @click="analyzeUrlWithAi"
+                  :disabled="isAnalyzingWithAi || !imageUrl.trim()"
+                  class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Use URL &amp; Caption</span>
+                  <span v-if="autoFillWithAi">✨</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1137,19 +1725,19 @@ onMounted(async () => {
         <div class="p-6 bg-gray-950 border-t border-gray-800 flex items-center justify-end gap-3">
           <button
             type="button"
-            @click="isModalOpen = false"
+            @click="closeAuctionModal"
             class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
-            @click="submitCreateAuction"
+            @click="submitAuctionForm"
             :disabled="auctionStore.isSubmitting"
-            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-900/40 disabled:opacity-50 transition-all active:scale-95"
+            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-900/40 disabled:opacity-50 transition-all active:scale-95 cursor-pointer"
           >
             <span v-if="auctionStore.isSubmitting" class="animate-spin">⏳</span>
-            <span>{{ auctionStore.isSubmitting ? 'Launching Auction...' : 'Launch Live Auction' }}</span>
+            <span>{{ editingAuctionId ? (auctionStore.isSubmitting ? 'Saving Adjustments...' : 'Save & Update Lot') : (auctionStore.isSubmitting ? 'Launching Auction...' : 'Launch Live Auction') }}</span>
           </button>
         </div>
       </div>
@@ -1216,7 +1804,19 @@ onMounted(async () => {
                 </div>
               </div>
               <div class="font-mono font-black text-sm text-right" :class="idx === 0 ? 'text-emerald-400' : 'text-gray-200'">
-                {{ formatPrice(b.amount) }}
+              <div class="flex items-center gap-3">
+                <div class="font-mono font-black text-sm text-right" :class="idx === 0 ? 'text-emerald-400' : 'text-gray-200'">
+                  {{ formatPrice(b.amount) }}
+                </div>
+                <button
+                  type="button"
+                  class="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-[10px] font-black uppercase cursor-pointer transition-colors"
+                  title="Cancel Bid & Release Wallet Escrow Hold"
+                  @click="openCancelBidModal(b)"
+                >
+                  Cancel Bid
+                </button>
+              </div>
               </div>
             </div>
           </div>
@@ -1228,6 +1828,112 @@ onMounted(async () => {
             class="px-4 py-2 rounded-xl text-xs font-bold text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors"
           >
             Close Ledger
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN CANCEL/DELETE BID WITH CAPTCHA CONFIRMATION MODAL -->
+    <div
+      v-if="isCancelBidModalOpen && bidToCancel"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+      @click="isCancelBidModalOpen = false"
+    >
+      <div
+        class="w-full max-w-md bg-gray-900 border border-rose-500/40 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl text-gray-100"
+        @click.stop
+      >
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl text-rose-400">🛡️</span>
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 block">Admin Security Action</span>
+              <h3 class="text-base font-black text-white">Delete &amp; Cancel Bid #{{ bidToCancel.id }}</h3>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="w-7 h-7 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 flex items-center justify-center text-xs"
+            @click="isCancelBidModalOpen = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1.5 text-rose-200">
+          <p class="font-bold">⚠️ Warning: High Impact Financial Action</p>
+          <p class="text-[11px] leading-relaxed text-gray-300">
+            Cancelling this bid will immediately release the <strong>{{ formatPrice(bidToCancel.amount) }}</strong> escrow hold back to <strong>{{ bidToCancel.masked_username }}</strong>'s wallet, re-evaluate the next highest bidder, and update the auction price.
+          </p>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-gray-300 font-bold mb-1">Mandatory Audit Reason</label>
+            <textarea
+              v-model="cancelBidReason"
+              rows="2"
+              placeholder="e.g. Bid placed in error, duplicate manual entry, or user request"
+              class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-white text-xs focus:border-rose-400 focus:outline-none"
+            ></textarea>
+          </div>
+
+          <!-- Captcha Verification Challenge -->
+          <div class="p-4 rounded-2xl bg-gray-950 border border-gray-800 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] font-bold text-gray-300">
+                Security Captcha Verification <span class="text-rose-400">*</span>
+              </label>
+              <button
+                type="button"
+                class="text-[10px] text-amber-400 hover:text-white underline cursor-pointer font-bold"
+                @click="generateCaptcha"
+              >
+                🔄 New Code
+              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div
+                class="px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-900 border-2 border-dashed border-rose-400/60 rounded-xl font-mono text-lg font-black tracking-widest text-rose-300 select-none shadow-inner"
+              >
+                {{ cancelBidCaptchaCode }}
+              </div>
+              <input
+                v-model="cancelBidCaptchaInput"
+                type="text"
+                maxlength="5"
+                placeholder="Type code"
+                class="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-xl text-white font-mono font-bold text-sm uppercase tracking-wider focus:border-rose-400 focus:outline-none"
+                @keyup.enter="executeAdminCancelBid"
+              />
+            </div>
+            <p class="text-[10px] text-gray-400">
+              Type the 5-character captcha code above to confirm this admin deletion.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold transition-colors cursor-pointer"
+            @click="isCancelBidModalOpen = false"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            :disabled="
+              isSubmittingCancelBid ||
+              cancelBidCaptchaInput.trim().toUpperCase() !== cancelBidCaptchaCode ||
+              !cancelBidReason.trim()
+            "
+            class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-lg shadow-rose-600/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            @click="executeAdminCancelBid"
+          >
+            <span v-if="isSubmittingCancelBid" class="animate-spin">🌀</span>
+            <span>Confirm &amp; Delete Bid</span>
           </button>
         </div>
       </div>

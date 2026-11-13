@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useAdminStore } from "../admin.store";
 import type { InventoryItem } from "../admin.types";
 import { formatCurrency } from "@/shared/utils/currency.util";
+import { resolveApiUrl } from "@/shared/utils/api";
 
+const router = useRouter();
 const adminStore = useAdminStore();
+
+const editProductDetails = (item: InventoryItem) => {
+  router.push({
+    path: "/admin/products",
+    query: { edit: item.id },
+  });
+};
 
 const searchQuery = ref("");
 const selectedCategory = ref("All");
@@ -218,6 +228,211 @@ const triggerImportCsv = () => {
   isCsvModalOpen.value = true;
 };
 
+// Cleanup & Deduplication State
+const isCleanupModalOpen = ref(false);
+const isScanningCleanup = ref(false);
+const isExecutingCleanup = ref(false);
+const cleanupPreviewData = ref<any>(null);
+const activeCleanupTab = ref<"img" | "figures">("img");
+
+// Delete All Products State (Secret Question Protected)
+const isDeleteAllModalOpen = ref(false);
+const isDeletingAll = ref(false);
+const secretQuestionText = ref("");
+const secretQuestionId = ref<number | null>(null);
+const secretAnswerInput = ref("");
+const deleteAllConfirmationInput = ref("");
+const deleteAllError = ref("");
+const isFetchingSecretQuestion = ref(false);
+
+const openDeleteAllModal = async () => {
+  isDeleteAllModalOpen.value = true;
+  secretAnswerInput.value = "";
+  deleteAllConfirmationInput.value = "";
+  deleteAllError.value = "";
+  isFetchingSecretQuestion.value = true;
+
+  try {
+    const res = await fetch(resolveApiUrl("/api/secret-questions/active"));
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        secretQuestionText.value = json.data.question;
+        secretQuestionId.value = json.data.id;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not fetch active secret question:", e);
+  } finally {
+    isFetchingSecretQuestion.value = false;
+  }
+};
+
+const executeDeleteAllProducts = async () => {
+  if (deleteAllConfirmationInput.value.trim().toUpperCase() !== "DELETE ALL PRODUCTS") {
+    deleteAllError.value = 'Please type "DELETE ALL PRODUCTS" exactly to confirm.';
+    return;
+  }
+  if (!secretAnswerInput.value.trim()) {
+    deleteAllError.value = "Please enter your secret security answer.";
+    return;
+  }
+
+  isDeletingAll.value = true;
+  deleteAllError.value = "";
+
+  try {
+    const token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(resolveApiUrl("/api/products/delete-all"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        secret_answer: secretAnswerInput.value.trim(),
+        confirmation: deleteAllConfirmationInput.value.trim(),
+      }),
+    });
+
+    const json = await res.json();
+
+    if (res.ok && json.success) {
+      showNotification(json.message || "All products deleted and images purged from Cloudflare R2.");
+      isDeleteAllModalOpen.value = false;
+      await fetchDbProducts();
+    } else {
+      deleteAllError.value = json.message || "Failed to wipe catalog. Authorization denied.";
+    }
+  } catch (e: any) {
+    console.error("Delete all products error:", e);
+    deleteAllError.value = e.message || "An error occurred while wiping the catalog.";
+  } finally {
+    isDeletingAll.value = false;
+  }
+};
+
+// Single Product Delete State
+const productToDelete = ref<InventoryItem | null>(null);
+const isDeletingSingle = ref(false);
+
+// Image Zoom & Inspection State
+const activeZoomProduct = ref<InventoryItem | null>(null);
+const hoveredZoomItem = ref<InventoryItem | null>(null);
+const hoveredZoomPos = ref<{ x: number; y: number }>({ x: 0, y: 0 });
+const isAdminZooming = ref(false);
+const adminZoomLevel = ref(2.5);
+const adminZoomX = ref(50);
+const adminZoomY = ref(50);
+const adminLensX = ref(0);
+const adminLensY = ref(0);
+
+const openZoomModal = (item: InventoryItem) => {
+  activeZoomProduct.value = item;
+  adminZoomLevel.value = 2.5;
+  isAdminZooming.value = false;
+};
+
+const handleAdminZoomMove = (e: MouseEvent) => {
+  const container = e.currentTarget as HTMLElement;
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  adminLensX.value = x;
+  adminLensY.value = y;
+  adminZoomX.value = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
+  adminZoomY.value = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
+};
+
+const handleThumbnailMouseEnter = (item: InventoryItem, e: MouseEvent) => {
+  hoveredZoomItem.value = item;
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  hoveredZoomPos.value = {
+    x: rect.right + 12,
+    y: Math.max(10, rect.top - 40),
+  };
+};
+
+const openCleanupModal = async () => {
+  isCleanupModalOpen.value = true;
+  await refreshCleanupPreview();
+};
+
+const refreshCleanupPreview = async () => {
+  isScanningCleanup.value = true;
+  try {
+    const res = await fetch("/api/products/cleanup-preview");
+    if (res.ok) {
+      cleanupPreviewData.value = await res.json();
+    }
+  } catch (e) {
+    console.error("Failed to load cleanup preview:", e);
+  } finally {
+    isScanningCleanup.value = false;
+  }
+};
+
+const executeCleanup = async (options: {
+  delete_img?: boolean;
+  dedupe_figures?: boolean;
+  pairs?: any[];
+}) => {
+  isExecutingCleanup.value = true;
+  try {
+    const res = await fetch("/api/products/cleanup-execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(options),
+    });
+    const json = await res.json();
+    if (json.success) {
+      showNotification(json.message || "Cleanup completed successfully.");
+      await fetchDbProducts();
+      await refreshCleanupPreview();
+    } else {
+      showNotification(json.message || "Cleanup failed.");
+    }
+  } catch (e) {
+    console.error("Cleanup execute error:", e);
+    showNotification("Failed to execute cleanup.");
+  } finally {
+    isExecutingCleanup.value = false;
+  }
+};
+
+const confirmDeleteProduct = (item: InventoryItem) => {
+  productToDelete.value = item;
+};
+
+const executeDeleteSingleProduct = async () => {
+  if (!productToDelete.value) return;
+  const item = productToDelete.value;
+  isDeletingSingle.value = true;
+  try {
+    const res = await fetch(`/api/products/${item.id}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+    if (res.ok) {
+      adminStore.inventory = adminStore.inventory.filter((i) => i.id !== item.id);
+      showNotification(`Deleted "${item.name}" and purged its storage images.`);
+      productToDelete.value = null;
+    } else {
+      showNotification("Failed to delete product.");
+    }
+  } catch (e) {
+    console.error("Delete single product error:", e);
+    showNotification("Error deleting product.");
+  } finally {
+    isDeletingSingle.value = false;
+  }
+};
+
 const handleSimulatedImport = () => {
   isCsvModalOpen.value = false;
   showNotification(
@@ -261,6 +476,24 @@ const showNotification = (msg: string) => {
         >
           <span :class="{ 'animate-spin': adminStore.isLoadingInventory }">🔄</span>
           <span>Refresh Stock</span>
+        </button>
+        <button
+          type="button"
+          class="min-h-[40px] px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm border border-amber-300"
+          title="Scan and clean raw IMG_ uploads and deduplicate figures"
+          @click="openCleanupModal"
+        >
+          <span>🧹</span>
+          <span>Clean Duplicates &amp; IMG</span>
+        </button>
+        <button
+          type="button"
+          class="min-h-[40px] px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-rose-200 shadow-xs"
+          title="Permanently wipe all products from database and purge from Cloudflare R2 (Requires Secret Question Verification)"
+          @click="openDeleteAllModal"
+        >
+          <span>🗑️</span>
+          <span>Delete All Products</span>
         </button>
         <button
           type="button"
@@ -413,7 +646,11 @@ const showNotification = (msg: string) => {
               <td class="p-4">
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex-shrink-0 flex items-center justify-center shadow-2xs group relative"
+                    class="w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 flex-shrink-0 flex items-center justify-center shadow-2xs group relative cursor-pointer"
+                    @mouseenter="handleThumbnailMouseEnter(item, $event)"
+                    @mouseleave="hoveredZoomItem = null"
+                    @click="openZoomModal(item)"
+                    title="Click or hover to inspect image"
                   >
                     <img
                       v-if="item.imageUrl"
@@ -423,6 +660,14 @@ const showNotification = (msg: string) => {
                       loading="lazy"
                     />
                     <span v-else class="text-base text-slate-400">📦</span>
+
+                    <!-- Magnifying glass overlay badge on hover -->
+                    <div
+                      v-if="item.imageUrl"
+                      class="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs z-10"
+                    >
+                      🔍
+                    </div>
                   </div>
                   <div class="min-w-0">
                     <span
@@ -646,10 +891,28 @@ const showNotification = (msg: string) => {
                   <button
                     type="button"
                     class="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
-                    title="Vendor Lead Specs"
+                    title="Vendor Lead Specs (Supplier)"
                     @click="openVendor(item)"
                   >
                     🏢
+                  </button>
+                  <button
+                    type="button"
+                    <!-- button -->
+                    class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer border border-slate-200 transition-colors"
+                    title="Edit product details"
+                    @click="editProductDetails(item)"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    type="button"
+                    <!-- button -->
+                    class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 cursor-pointer transition-colors"
+                    title="Delete product and purge storage images"
+                    @click="confirmDeleteProduct(item)"
+                  >
+                    🗑️
                   </button>
                 </div>
               </td>
@@ -993,6 +1256,571 @@ const showNotification = (msg: string) => {
             >
               Process &amp; Update Stock
             </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Delete All Products Security Modal with Secret Question Verification -->
+    <teleport to="body">
+      <div
+        v-if="isDeleteAllModalOpen"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-display"
+      >
+        <div
+          class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-5 shadow-2xl border border-rose-200"
+        >
+          <!-- Warning Header -->
+          <div class="flex items-start gap-3.5 text-rose-600">
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-2xl shrink-0">
+              🚨
+            </div>
+            <div>
+              <h3 class="text-lg font-black text-slate-900 tracking-tight">Wipe Entire Catalog?</h3>
+              <p class="text-xs text-rose-600 font-bold">DANGER ZONE: Irreversible action</p>
+            </div>
+          </div>
+
+          <!-- Description Box -->
+          <div class="p-3.5 bg-rose-50/80 rounded-2xl border border-rose-200 text-xs text-rose-950 space-y-1.5">
+            <p class="font-bold">This will permanently delete all products in your inventory.</p>
+            <p class="text-slate-600 text-[11px] leading-relaxed">
+              Every product record in your database will be deleted, and all corresponding product images will be permanently purged from Cloudflare R2 object storage.
+            </p>
+          </div>
+
+          <!-- Secret Question Clearance Box -->
+          <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div class="flex items-center gap-2 text-xs font-black text-slate-800">
+              <span>🔐</span>
+              <span>Security Clearance: Secret Question</span>
+            </div>
+
+            <div v-if="isFetchingSecretQuestion" class="text-xs text-slate-400 italic">
+              Loading active security question...
+            </div>
+            <div v-else class="space-y-1.5">
+              <label class="text-[11px] font-bold text-slate-600 block">
+                {{ secretQuestionText || "What's the name of your pet?" }}
+              </label>
+              <input
+                v-model="secretAnswerInput"
+                type="text"
+                placeholder="Enter your security answer"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                @keydown.enter="executeDeleteAllProducts"
+              />
+            </div>
+          </div>
+
+          <!-- Confirmation Phrase Input -->
+          <div class="space-y-1.5">
+            <label class="text-[11px] font-black text-slate-700 block">
+              Type <span class="font-mono text-rose-600 bg-rose-50 px-1 py-0.5 rounded border border-rose-200">DELETE ALL PRODUCTS</span> to confirm:
+            </label>
+            <input
+              v-model="deleteAllConfirmationInput"
+              type="text"
+              placeholder="DELETE ALL PRODUCTS"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 uppercase"
+              @keydown.enter="executeDeleteAllProducts"
+            />
+          </div>
+
+          <!-- Error Alert -->
+          <div
+            v-if="deleteAllError"
+            class="p-3 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 text-xs font-bold flex items-center gap-2"
+          >
+            <span>⚠️</span>
+            <span>{{ deleteAllError }}</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-2.5 pt-2">
+            <button
+              type="button"
+              :disabled="isDeletingAll"
+              class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer disabled:opacity-50"
+              @click="isDeleteAllModalOpen = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              :disabled="isDeletingAll || deleteAllConfirmationInput.trim().toUpperCase() !== 'DELETE ALL PRODUCTS' || !secretAnswerInput.trim()"
+              class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-rose-600/30"
+              @click="executeDeleteAllProducts"
+            >
+              <span v-if="isDeletingAll" class="animate-spin">🔄</span>
+              <span>{{ isDeletingAll ? 'Wiping Catalog & R2...' : 'Wipe Entire Catalog' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Single Product Delete Confirmation Modal -->
+    <teleport to="body">
+      <div
+        v-if="productToDelete"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-display"
+      >
+        <div
+          class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+        >
+          <div class="flex items-center gap-3 text-rose-600">
+            <span class="text-3xl">⚠️</span>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Delete Product Permanently?</h3>
+              <p class="text-xs text-slate-500">This action cannot be undone.</p>
+            </div>
+          </div>
+
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+            <img
+              v-if="productToDelete.imageUrl"
+              :src="productToDelete.imageUrl"
+              :alt="productToDelete.name"
+              class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200 p-0.5"
+            />
+            <div class="min-w-0">
+              <span class="font-extrabold text-xs text-slate-900 block truncate">{{ productToDelete.name }}</span>
+              <span class="text-[11px] font-mono text-slate-500">SKU: {{ productToDelete.sku }} • ₱{{ formatCurrency(productToDelete.sellingPrice) }}</span>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-600">
+            Deleting this product will remove it from the database and automatically purge its primary &amp; gallery images from Cloudflare R2 storage.
+          </p>
+
+          <div class="flex gap-2 pt-2">
+            <button
+              type="button"
+              :disabled="isDeletingSingle"
+              class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer disabled:opacity-50"
+              @click="productToDelete = null"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              :disabled="isDeletingSingle"
+              class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-rose-600/20"
+              @click="executeDeleteSingleProduct"
+            >
+              <span v-if="isDeletingSingle" class="animate-spin">🔄</span>
+              <span>{{ isDeletingSingle ? 'Deleting...' : 'Delete &amp; Purge' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Catalog Cleanup & Deduplication Modal -->
+    <teleport to="body">
+      <div
+        v-if="isCleanupModalOpen"
+        class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 font-display"
+      >
+        <div
+          class="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-5 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col"
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🧹</span>
+                <h3 class="text-lg font-black text-slate-900">Catalog Cleanup &amp; Deduplication</h3>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Remove raw camera filenames (IMG_...) and deduplicate figures sharing photos or names.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+              @click="isCleanupModalOpen = false"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Loading Scan State -->
+          <div v-if="isScanningCleanup" class="py-16 text-center space-y-3">
+            <div class="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p class="text-xs text-slate-600 font-bold">Scanning database for IMG_ placeholders and duplicate figures...</p>
+          </div>
+
+          <!-- Main Content -->
+          <div v-else-if="cleanupPreviewData" class="flex-1 overflow-y-auto space-y-4 pr-1">
+            <!-- Tabs -->
+            <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+              <button
+                type="button"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                :class="activeCleanupTab === 'img' ? 'bg-rose-50 text-rose-700 border border-rose-200 font-black' : 'text-slate-600 hover:bg-slate-100'"
+                @click="activeCleanupTab = 'img'"
+              >
+                <span>📷</span>
+                <span>IMG_ Camera Uploads ({{ cleanupPreviewData.img_products?.count || 0 }})</span>
+              </button>
+              <button
+                type="button"
+                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                :class="activeCleanupTab === 'figures' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-black' : 'text-slate-600 hover:bg-slate-100'"
+                @click="activeCleanupTab = 'figures'"
+              >
+                <span>🤖</span>
+                <span>Duplicate Figures ({{ cleanupPreviewData.duplicate_figures?.total_duplicate_count || 0 }})</span>
+              </button>
+            </div>
+
+            <!-- Tab 1: IMG_ Camera Uploads -->
+            <div v-if="activeCleanupTab === 'img'" class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">
+                  Products with raw unparsed names (like <code>IMG 2026...</code>) uploaded without title drafting.
+                </span>
+                <button
+                  v-if="(cleanupPreviewData.img_products?.count || 0) > 0"
+                  type="button"
+                  :disabled="isExecutingCleanup"
+                  class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm shadow-rose-600/20"
+                  @click="executeCleanup({ delete_img: true, dedupe_figures: false })"
+                >
+                  <span v-if="isExecutingCleanup" class="animate-spin">🔄</span>
+                  <span>Delete All {{ cleanupPreviewData.img_products.count }} IMG Products</span>
+                </button>
+              </div>
+
+              <div v-if="(cleanupPreviewData.img_products?.count || 0) === 0" class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-xs">
+                ✅ No placeholder IMG_ products found in the database.
+              </div>
+
+              <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                <div
+                  v-for="item in cleanupPreviewData.img_products.items"
+                  :key="item.id"
+                  class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2.5"
+                >
+                  <img
+                    v-if="item.image_url"
+                    :src="item.image_url"
+                    :alt="item.name"
+                    class="w-12 h-12 rounded-lg object-contain bg-white border border-slate-200 shrink-0 p-0.5"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <span class="font-bold text-xs text-slate-900 block truncate" :title="item.name">{{ item.name }}</span>
+                    <span class="text-[10px] text-slate-500 block">₱{{ Number(item.price).toLocaleString() }} • Stock: {{ item.stock }}</span>
+                    <span class="text-[9px] text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.2 rounded inline-block mt-0.5">{{ item.category }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Duplicate Figures -->
+            <div v-if="activeCleanupTab === 'figures'" class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">
+                  Figure &amp; Gunpla entries sharing photos or matching names. Primary keeper product is on the left.
+                </span>
+                <button
+                  v-if="(cleanupPreviewData.duplicate_figures?.total_duplicate_count || 0) > 0"
+                  type="button"
+                  :disabled="isExecutingCleanup"
+                  class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                  @click="executeCleanup({ delete_img: false, dedupe_figures: true })"
+                >
+                  <span v-if="isExecutingCleanup" class="animate-spin">🔄</span>
+                  <span>Merge All {{ cleanupPreviewData.duplicate_figures.total_duplicate_count }} Duplicates</span>
+                </button>
+              </div>
+
+              <div v-if="(cleanupPreviewData.duplicate_figures?.total_duplicate_count || 0) === 0" class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-xs">
+                ✅ No duplicate figure records detected.
+              </div>
+
+              <div v-else class="space-y-3">
+                <!-- Image Matches -->
+                <div
+                  v-for="(group, idx) in cleanupPreviewData.duplicate_figures.by_image"
+                  :key="'img-group-' + idx"
+                  class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <div class="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                    <span class="flex items-center gap-1">
+                      <span>📸</span>
+                      <span>{{ group.reason }}</span>
+                    </span>
+                    <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-mono">
+                      {{ group.duplicates.length + 1 }} entries
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <!-- Primary (Keep) -->
+                    <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5">
+                      <img
+                        v-if="group.primary.image_url"
+                        :src="group.primary.image_url"
+                        class="w-11 h-11 rounded-lg object-contain bg-white border border-emerald-200 shrink-0 p-0.5"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <span class="text-[9px] font-black uppercase text-emerald-700 tracking-wider block">Keep (Primary)</span>
+                        <span class="font-bold text-slate-900 block truncate" :title="group.primary.name">{{ group.primary.name }}</span>
+                        <span class="text-[10px] text-slate-500">#{{ group.primary.id }} • Stock: {{ group.primary.stock }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Duplicates (Delete / Merge) -->
+                    <div
+                      v-for="dup in group.duplicates"
+                      :key="'dup-' + dup.id"
+                      class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-2"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <span class="text-[9px] font-black uppercase text-rose-700 tracking-wider block">Duplicate (Remove)</span>
+                        <span class="font-bold text-slate-900 block truncate" :title="dup.name">{{ dup.name }}</span>
+                        <span class="text-[10px] text-slate-500">#{{ dup.id }} • Stock: {{ dup.stock }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        :disabled="isExecutingCleanup"
+                        class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] shrink-0 cursor-pointer disabled:opacity-50"
+                        @click="executeCleanup({ delete_img: false, dedupe_figures: true, pairs: [{ primary_id: group.primary.id, duplicate_id: dup.id }] })"
+                      >
+                        Merge
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Name Matches -->
+                <div
+                  v-for="(group, idx) in cleanupPreviewData.duplicate_figures.by_name"
+                  :key="'name-group-' + idx"
+                  class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5"
+                >
+                  <div class="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                    <span class="flex items-center gap-1">
+                      <span>🏷️</span>
+                      <span>{{ group.reason }}</span>
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                      <span class="text-[9px] font-black uppercase text-emerald-700 tracking-wider block">Keep (Primary)</span>
+                      <span class="font-bold text-slate-900 block truncate">{{ group.primary.name }}</span>
+                      <span class="text-[10px] text-slate-500">#{{ group.primary.id }} • Stock: {{ group.primary.stock }}</span>
+                    </div>
+                    <div
+                      v-for="dup in group.duplicates"
+                      :key="'dup-name-' + dup.id"
+                      class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-2"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <span class="text-[9px] font-black uppercase text-rose-700 tracking-wider block">Duplicate</span>
+                        <span class="font-bold text-slate-900 block truncate">{{ dup.name }}</span>
+                        <span class="text-[10px] text-slate-500">#{{ dup.id }} • Stock: {{ dup.stock }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        :disabled="isExecutingCleanup"
+                        class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] shrink-0 cursor-pointer disabled:opacity-50"
+                        @click="executeCleanup({ delete_img: false, dedupe_figures: true, pairs: [{ primary_id: group.primary.id, duplicate_id: dup.id }] })"
+                      >
+                        Merge
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between shrink-0">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+              @click="refreshCleanupPreview"
+            >
+              🔄 Rescan
+            </button>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                @click="isCleanupModalOpen = false"
+              >
+                Close
+              </button>
+              <button
+                v-if="cleanupPreviewData && cleanupPreviewData.total_actions_needed > 0"
+                type="button"
+                :disabled="isExecutingCleanup"
+                class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-md border border-amber-300 disabled:opacity-50"
+                @click="executeCleanup({ delete_img: true, dedupe_figures: true })"
+              >
+                <span v-if="isExecutingCleanup" class="animate-spin">🔄</span>
+                <span>⚡ Run Full Catalog Cleanup</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- HOVER ZOOM PREVIEW FLOATING POPOVER -->
+    <teleport to="body">
+      <div
+        v-if="hoveredZoomItem && hoveredZoomItem.imageUrl && !activeZoomProduct"
+        class="fixed z-40 pointer-events-none transition-opacity duration-150 animate-fadeIn"
+        :style="{
+          left: `${hoveredZoomPos.x}px`,
+          top: `${hoveredZoomPos.y}px`,
+        }"
+      >
+        <div class="bg-slate-900 border-2 border-amber-400/90 rounded-2xl p-2.5 shadow-2xl w-64 space-y-2 text-slate-100">
+          <div class="relative w-full h-56 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center border border-slate-800">
+            <img
+              :src="hoveredZoomItem.imageUrl"
+              :alt="hoveredZoomItem.name"
+              class="w-full h-full object-contain p-1"
+            />
+            <div class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-900/85 border border-slate-700 text-[9px] font-mono font-bold text-amber-300">
+              🔍 Click to Inspect
+            </div>
+          </div>
+          <div class="space-y-0.5">
+            <p class="text-xs font-bold text-white truncate">{{ hoveredZoomItem.name }}</p>
+            <p class="text-[10px] font-mono text-slate-400 truncate">SKU: {{ hoveredZoomItem.sku }}</p>
+            <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800 font-bold">
+              <span class="text-emerald-400 font-mono">₱{{ Number(hoveredZoomItem.price).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</span>
+              <span class="text-slate-300">Stock: {{ hoveredZoomItem.stock }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- ADMIN INVENTORY PRODUCT IMAGE ZOOM MODAL -->
+    <teleport to="body">
+      <div
+        v-if="activeZoomProduct"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+        @click="activeZoomProduct = null"
+      >
+        <div
+          class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative space-y-4"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">🔍</span>
+              <div>
+                <h3 class="text-base font-extrabold text-white truncate max-w-md">
+                  {{ activeZoomProduct.name }}
+                </h3>
+                <p class="text-xs font-mono text-slate-400">
+                  SKU: {{ activeZoomProduct.sku }} &bull; UPC: {{ activeZoomProduct.barcode }}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm"
+              @click="activeZoomProduct = null"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Image Container with Interactive Pan & Zoom -->
+          <div
+            class="relative w-full h-96 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center cursor-zoom-in group/zoom select-none"
+            @mousemove="handleAdminZoomMove"
+            @mouseenter="isAdminZooming = true"
+            @mouseleave="isAdminZooming = false"
+          >
+            <img
+              :src="activeZoomProduct.imageUrl"
+              :alt="activeZoomProduct.name"
+              class="max-w-full max-h-full object-contain transition-transform duration-100 ease-out"
+              :style="
+                isAdminZooming
+                  ? {
+                      transform: `scale(${adminZoomLevel})`,
+                      transformOrigin: `${adminZoomX}% ${adminZoomY}%`,
+                    }
+                  : {}
+              "
+            />
+            <!-- Magnifying glass lens indicator -->
+            <div
+              v-if="isAdminZooming"
+              class="pointer-events-none absolute w-28 h-28 rounded-full border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.5)] bg-white/5 z-20 flex items-center justify-center"
+              :style="{
+                left: `${adminLensX - 56}px`,
+                top: `${adminLensY - 56}px`,
+              }"
+            >
+              <span class="text-xs opacity-70">🔍</span>
+            </div>
+
+            <!-- Controls overlay -->
+            <div class="absolute bottom-3 left-3 flex items-center gap-2 z-10 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+              <span class="text-slate-400 font-bold">Zoom:</span>
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                @click.stop="adminZoomLevel = Math.max(1.5, adminZoomLevel - 0.5)"
+              >
+                -
+              </button>
+              <span class="font-mono text-amber-400 font-bold">{{ adminZoomLevel }}x</span>
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                @click.stop="adminZoomLevel = Math.min(4, adminZoomLevel + 0.5)"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px]"
+                @click.stop="adminZoomLevel = 2.5"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div class="absolute top-3 right-3 z-10 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-slate-700 text-[10px] text-slate-300 flex items-center gap-1">
+              <span>🔍 Move cursor to pan detail</span>
+            </div>
+          </div>
+
+          <!-- Product meta footer -->
+          <div class="flex items-center justify-between text-xs pt-2">
+            <div class="flex items-center gap-3">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold">
+                Stock: {{ activeZoomProduct.stock }} units
+              </span>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 font-bold font-mono">
+                ₱{{ Number(activeZoomProduct.price).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}
+              </span>
+            </div>
+            <a
+              :href="activeZoomProduct.imageUrl"
+              target="_blank"
+              class="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>Open Original Image ↗</span>
+            </a>
           </div>
         </div>
       </div>

@@ -16,20 +16,78 @@ export function mapApiProductToToy(p: any): ToyProduct {
   }
 
   // 1. Resolve Category
-  const catDesc = (p.category?.desc || "").toLowerCase();
+  const catDesc = (p.category?.desc || p.category_name || "").toLowerCase();
+  const catId = Number(p.ref_category_id || p.category_id || p.category?.id || 0);
+  const nameLower = (p.name || "").toLowerCase();
+
   let category: ToyCategory = "tcg";
-  if (p.ref_category_id === 2 || catDesc.includes("gunpla")) {
+
+  // Check Gunpla first (takes precedence for Gundam models/kits)
+  if (
+    catId === 2 || catId === 22 ||
+    catDesc.includes("gunpla") ||
+    nameLower.includes("gunpla") ||
+    nameLower.includes("gundam") ||
+    /\b(hg|rg|mg|pg|eg|sd)\s*1\/\d+/i.test(nameLower) ||
+    (nameLower.includes("model kit") && !nameLower.includes("figure"))
+  ) {
     category = "gunpla";
-  } else if (p.ref_category_id === 3 || catDesc.includes("figure")) {
+  } else if (
+    catId === 3 || catId === 23 ||
+    catDesc.includes("figure") ||
+    catDesc.includes("statue") ||
+    nameLower.includes("figure") ||
+    nameLower.includes("figma") ||
+    nameLower.includes("nendoroid") ||
+    nameLower.includes("pop up parade") ||
+    nameLower.includes("q posket") ||
+    nameLower.includes("scale statue") ||
+    nameLower.includes("scale figure") ||
+    nameLower.includes("prize figure") ||
+    nameLower.includes("spm figure") ||
+    nameLower.includes("dx figure") ||
+    nameLower.includes("saber lily") ||
+    nameLower.includes("dia kurosawa") ||
+    nameLower.includes("anya forger") ||
+    nameLower.includes("oguri cap") ||
+    nameLower.includes("godzilla") ||
+    nameLower.includes("fubuki") ||
+    (nameLower.includes("ichiban kuji") && !nameLower.includes("gunpla"))
+  ) {
     category = "anime-figures";
-  } else if (p.ref_category_id === 4 || catDesc.includes("merch")) {
+  } else if (
+    catId === 4 || catId === 24 ||
+    catDesc.includes("merch") ||
+    catDesc.includes("goods") ||
+    nameLower.includes("acrylic stand") ||
+    nameLower.includes("keychain") ||
+    nameLower.includes("strap") ||
+    nameLower.includes("badge") ||
+    nameLower.includes("pin badge") ||
+    nameLower.includes("tapestry") ||
+    nameLower.includes("clear file") ||
+    nameLower.includes("wall scroll")
+  ) {
     category = "anime-merchandise";
   } else if (
-    p.ref_category_id === 5 ||
+    catId === 5 || catId === 25 ||
     catDesc.includes("plush") ||
-    catDesc.includes("toy")
+    catDesc.includes("toy") ||
+    nameLower.includes("plush") ||
+    nameLower.includes("nesoberi") ||
+    nameLower.includes("gachapon") ||
+    nameLower.includes("blind box")
   ) {
     category = "toys-plushies";
+  } else if (
+    catId === 1 || catId === 21 ||
+    catDesc.includes("tcg") ||
+    catDesc.includes("card") ||
+    nameLower.includes("tcg") ||
+    nameLower.includes("booster") ||
+    nameLower.includes("card game")
+  ) {
+    category = "tcg";
   }
 
   // 2. Resolve TCG Series if applicable
@@ -109,7 +167,7 @@ export function mapApiProductToToy(p: any): ToyProduct {
         "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80";
     } else {
       imageUrl =
-        "https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?w=600&auto=format&fit=crop&q=80";
+        "https://images.pokemontcg.io/swsh7/215_hires.png";
     }
   }
 
